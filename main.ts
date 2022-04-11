@@ -2,11 +2,11 @@ import {Markup, Telegraf} from "telegraf";
 import {config} from "dotenv"
 import ChatController from "./controllers/ChatController";
 import NewPoolTask from "./app/tasks/NewPoolTask";
-import {CallbackQuery} from "typegram";
 import {QueryTypeEnum} from "./app/queries/QueryTypeEnum";
-import {QueryEntity} from "./app/queries/QueryEntity";
 import ChatQueryEntity from "./app/queries/ChatQueryEntity";
 import PoolQueryEntity from "./app/queries/PoolQueryEntity";
+import SaveQueryEntity from "./app/queries/SaveQueryEntity";
+import PoolController from "./controllers/PoolController";
 
 config();
 
@@ -15,11 +15,8 @@ if(!process.env.BOT_TOKEN)
 
 const bot = new Telegraf(process.env.BOT_TOKEN);
 const controller = new ChatController();
+const poolController = new PoolController();
 const taskList = new Map<number, NewPoolTask>();
-
-bot.action("test 1", (ctx) => {
-    console.log("action", ctx.update);
-})
 
 bot.on("my_chat_member", async (res) => {
     const data = res.update.my_chat_member;
@@ -31,15 +28,25 @@ bot.on("my_chat_member", async (res) => {
         await controller.deleteChat(data.chat.id);
 });
 
-bot.command("/sendpool", () => {
+bot.command("/sendpool", async (ctx) => {
+    let chatList = await getValidChatForUser(ctx.message.from.id);
+    let buttons = chatList.map(el => Markup.button.callback(el.title, JSON.stringify({chatId: el.id, type: QueryTypeEnum.CHOOSE_CHAT})));
 
+    return ctx.reply(
+        'Выберите чат',
+        Markup.inlineKeyboard(buttons, {
+            columns: 3
+        })
+    ).then(() => {
+        // taskList.set(ctx.message.from.id, new NewPoolTask(poolController));
+    })
 });
 
 bot.command("/delpool", () => {
 
 });
 
-bot.on("callback_query", (ctx) => {
+bot.on("callback_query", async (ctx) => {
     let task = taskList.get(ctx.update.callback_query.from.id);
     if(!task)
         return;
@@ -52,15 +59,25 @@ bot.on("callback_query", (ctx) => {
     if(data.type === QueryTypeEnum.CHOOSE_CHAT) {
         task.setChatId(data.chatId);
         ctx.reply("Пришлите название опроса");
+        return;
     }
 
+    if(data.type === QueryTypeEnum.SAVE_POOL) {
+        if(data.flag) {
+            await task.store();
+            ctx.reply("Опрос сохранен")
+        } else {
+            ctx.reply("Опрос отменен. Выберите новую команду")
+        }
+
+        taskList.delete(ctx.update.callback_query.from.id);
+    }
 
 });
 
-
 bot.command("/newpool", async (ctx) => {
     let chatList = await getValidChatForUser(ctx.message.from.id);
-    let buttons = chatList.map(el => Markup.button.callback(el.title, JSON.stringify({id: el.id, type: QueryTypeEnum.CHOOSE_CHAT})));
+    let buttons = chatList.map(el => Markup.button.callback(el.title, JSON.stringify({chatId: el.id, type: QueryTypeEnum.CHOOSE_CHAT})));
 
     return ctx.reply(
         'Выберите чат',
@@ -68,9 +85,62 @@ bot.command("/newpool", async (ctx) => {
             columns: 3
         })
     ).then(() => {
-        taskList.set(ctx.message.from.id, new NewPoolTask(bot));
+        taskList.set(ctx.message.from.id, new NewPoolTask(poolController));
     })
 });
+
+bot.command("/done", async (ctx) => {
+    let task = taskList.get(ctx.message.from.id);
+    if(!task)
+        return;
+
+    task.setDone();
+    let data = task.getPoolData();
+    await ctx.replyWithPoll(data.question, data.answers, {
+        is_anonymous:false,
+        allows_multiple_answers: true
+    })
+
+    let buttons = Markup.inlineKeyboard([
+        Markup.button.callback("Сохранить", JSON.stringify({flag: true, type: QueryTypeEnum.SAVE_POOL})),
+        Markup.button.callback("Отмена", JSON.stringify({flag: false, type: QueryTypeEnum.SAVE_POOL})),
+    ], {
+        columns: 3
+    });
+    ctx.reply("Сохранить опрос?", buttons)
+})
+
+bot.on("text", (ctx) => {
+
+    let task = taskList.get(ctx.message.from.id);
+    if(!task)
+        return;
+
+    if(task.isSetNameState()) {
+        task.setName(ctx.message.text);
+        ctx.reply("Задайте вопрос");
+        return;
+    }
+
+    if(task.isSetQuestionState()) {
+        task.setQuestion(ctx.message.text);
+        ctx.reply("Задайте варианты ответов");
+        return;
+    }
+
+    if(task.isSetAnswerState()) {
+        task.addAnswer(ctx.message.text);
+        if(task.countAnswer() <= 10 && task.countAnswer() > 1) {
+            ctx.reply("Задайте варианты ответов. Если вы хотите закончить, пришлите /done");
+        } else if(task.countAnswer() <= 1) {
+            ctx.reply("Вариантов ответов должно быть минимум два. Задайте варианты ответов.");
+        } else {
+            ctx.reply("Достигнуто максимальное количество ответов. Пришлите /done");
+        }
+
+        return;
+    }
+})
 
 async function getValidChatForUser(userId: number) {
     let chatList = await controller.getChatList();
@@ -96,4 +166,4 @@ async function checkAccess(chatId: number, userId: number) {
 
 bot.launch();
 
-type QueryTypes = ChatQueryEntity | PoolQueryEntity;
+type QueryTypes = ChatQueryEntity | PoolQueryEntity | SaveQueryEntity;
