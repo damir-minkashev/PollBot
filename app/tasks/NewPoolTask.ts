@@ -1,5 +1,7 @@
 import {NewPoolStateEnum} from "./NewPoolStateEnum";
 import PoolController from "../../controllers/PoolController";
+import {Context} from "telegraf";
+import {Update} from "typegram";
 
 export default class NewPoolTask {
 
@@ -13,7 +15,8 @@ export default class NewPoolTask {
 
     private answers: string[] = [];
 
-    constructor(private controller: PoolController) {
+    constructor(private controller: PoolController,
+                private ctx: Context<Update>) {
         this.poolState = NewPoolStateEnum.CHOOSE_CHAT;
     }
 

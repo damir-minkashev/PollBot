@@ -1,4 +1,4 @@
-import {Markup, Telegraf} from "telegraf";
+import {Context, Markup, Telegraf} from "telegraf";
 import {config} from "dotenv"
 import ChatController from "./controllers/ChatController";
 import NewPoolTask from "./app/tasks/NewPoolTask";
@@ -7,6 +7,8 @@ import ChatQueryEntity from "./app/queries/ChatQueryEntity";
 import PoolQueryEntity from "./app/queries/PoolQueryEntity";
 import SaveQueryEntity from "./app/queries/SaveQueryEntity";
 import PoolController from "./controllers/PoolController";
+import {Update} from "typegram";
+import SendPoolTask from "./app/tasks/SendPoolTask";
 
 config();
 
@@ -16,7 +18,7 @@ if(!process.env.BOT_TOKEN)
 const bot = new Telegraf(process.env.BOT_TOKEN);
 const controller = new ChatController();
 const poolController = new PoolController();
-const taskList = new Map<number, NewPoolTask>();
+const taskList = new Map<number, NewPoolTask | SendPoolTask>();
 
 bot.on("my_chat_member", async (res) => {
     const data = res.update.my_chat_member;
@@ -29,16 +31,8 @@ bot.on("my_chat_member", async (res) => {
 });
 
 bot.command("/sendpool", async (ctx) => {
-    let chatList = await getValidChatForUser(ctx.message.from.id);
-    let buttons = chatList.map(el => Markup.button.callback(el.title, JSON.stringify({chatId: el.id, type: QueryTypeEnum.CHOOSE_CHAT})));
-
-    return ctx.reply(
-        'Выберите чат',
-        Markup.inlineKeyboard(buttons, {
-            columns: 3
-        })
-    ).then(() => {
-        // taskList.set(ctx.message.from.id, new NewPoolTask(poolController));
+    sendChatKeyboard(ctx).then(() => {
+        taskList.set(ctx.message.from.id, new SendPoolTask(poolController));
     })
 });
 
@@ -55,37 +49,45 @@ bot.on("callback_query", async (ctx) => {
         return;
 
     let data: QueryTypes = JSON.parse(ctx.update.callback_query.data);
+    if(task instanceof NewPoolTask) {
+        if(data.type === QueryTypeEnum.CHOOSE_CHAT) {
+            task.setChatId(data.chatId);
+            ctx.reply("Пришлите название опроса");
+            return;
+        }
 
-    if(data.type === QueryTypeEnum.CHOOSE_CHAT) {
-        task.setChatId(data.chatId);
-        ctx.reply("Пришлите название опроса");
+        if(data.type === QueryTypeEnum.SAVE_POOL) {
+            if(data.flag) {
+                await task.store();
+                ctx.reply("Опрос сохранен")
+            } else {
+                ctx.reply("Опрос отменен. Выберите новую команду")
+            }
+
+            taskList.delete(ctx.update.callback_query.from.id);
+        }
         return;
     }
 
-    if(data.type === QueryTypeEnum.SAVE_POOL) {
-        if(data.flag) {
-            await task.store();
-            ctx.reply("Опрос сохранен")
-        } else {
-            ctx.reply("Опрос отменен. Выберите новую команду")
-        }
+    if(data.type === QueryTypeEnum.CHOOSE_CHAT) {
+        let poolList = await task.getPools(data.chatId);
+        let buttons = poolList.map(el => Markup.button.callback(el.name, JSON.stringify({poolId: el.id, type: QueryTypeEnum.CHOOSE_POOL})));
 
-        taskList.delete(ctx.update.callback_query.from.id);
+        ctx.reply("Выберите опрос", Markup.inlineKeyboard(buttons));
+        task.setChatId(data.chatId);
+    }
+
+    if(data.type === QueryTypeEnum.CHOOSE_POOL) {
+        let pool = task.getPool(data.poolId);
+        if(pool)
+            bot.telegram.sendPoll()
     }
 
 });
 
 bot.command("/newpool", async (ctx) => {
-    let chatList = await getValidChatForUser(ctx.message.from.id);
-    let buttons = chatList.map(el => Markup.button.callback(el.title, JSON.stringify({chatId: el.id, type: QueryTypeEnum.CHOOSE_CHAT})));
-
-    return ctx.reply(
-        'Выберите чат',
-        Markup.inlineKeyboard(buttons, {
-            columns: 3
-        })
-    ).then(() => {
-        taskList.set(ctx.message.from.id, new NewPoolTask(poolController));
+    sendChatKeyboard(ctx).then(() => {
+        taskList.set(ctx.message.from.id, new NewPoolTask(poolController, ctx));
     })
 });
 
@@ -94,12 +96,15 @@ bot.command("/done", async (ctx) => {
     if(!task)
         return;
 
+    if(!(task instanceof NewPoolTask))
+        return;
+
     task.setDone();
     let data = task.getPoolData();
     await ctx.replyWithPoll(data.question, data.answers, {
         is_anonymous:false,
         allows_multiple_answers: true
-    })
+    });
 
     let buttons = Markup.inlineKeyboard([
         Markup.button.callback("Сохранить", JSON.stringify({flag: true, type: QueryTypeEnum.SAVE_POOL})),
@@ -114,6 +119,9 @@ bot.on("text", (ctx) => {
 
     let task = taskList.get(ctx.message.from.id);
     if(!task)
+        return;
+
+    if(!(task instanceof NewPoolTask))
         return;
 
     if(task.isSetNameState()) {
@@ -141,6 +149,21 @@ bot.on("text", (ctx) => {
         return;
     }
 })
+
+async function sendChatKeyboard(ctx: Context<Update>) {
+    if(!ctx.message)
+        return;
+
+    let chatList = await getValidChatForUser(ctx.message.from.id);
+    let buttons = chatList.map(el => Markup.button.callback(el.title, JSON.stringify({chatId: el.id, type: QueryTypeEnum.CHOOSE_CHAT})));
+
+    return ctx.reply(
+        'Выберите чат',
+        Markup.inlineKeyboard(buttons, {
+            columns: 3
+        })
+    )
+}
 
 async function getValidChatForUser(userId: number) {
     let chatList = await controller.getChatList();

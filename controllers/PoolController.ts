@@ -13,7 +13,7 @@ export default class PoolController {
     }
 
     public getPoolList(chatId: number) {
-
+        return this.service.getPoolList(chatId);
     }
 
 }

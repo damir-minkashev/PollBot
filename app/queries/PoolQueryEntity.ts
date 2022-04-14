@@ -6,5 +6,5 @@ export default interface PoolQueryEntity
 
     type: QueryTypeEnum.CHOOSE_POOL,
 
-    name: string;
+    poolId: string;
 }
