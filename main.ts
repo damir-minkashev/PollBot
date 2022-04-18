@@ -14,10 +14,10 @@ import ShowPoolsTask from "./app/tasks/ShowPoolsTask";
 
 config();
 
-// if(!process.env.BOT_TOKEN)
-//     throw new Error("BOT_TOKEN is empty");
+if(!process.env.BOT_TOKEN)
+    throw new Error("BOT_TOKEN is empty");
 
-const bot = new Telegraf("5237809364:AAEjk5by7hzYGNIPfP26ovo4LETTgeE4iDM");
+const bot = new Telegraf(process.env.BOT_TOKEN);
 const controller = new ChatController();
 const poolController = new PoolController();
 const taskList = new Map<number, TaskTypes>();
