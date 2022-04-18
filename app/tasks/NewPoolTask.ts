@@ -2,6 +2,7 @@ import {NewPoolStateEnum} from "./NewPoolStateEnum";
 import PoolController from "../../controllers/PoolController";
 import {Context} from "telegraf";
 import {Update} from "typegram";
+import {PoolOptionsSchema} from "../../schema/PoolOptionsSchema";
 
 export default class NewPoolTask {
 
@@ -15,9 +16,15 @@ export default class NewPoolTask {
 
     private answers: string[] = [];
 
-    constructor(private controller: PoolController,
-                private ctx: Context<Update>) {
+    private options: PoolOptionsSchema;
+
+    constructor(private controller: PoolController) {
         this.poolState = NewPoolStateEnum.CHOOSE_CHAT;
+        this.options = {
+            pinPool: true,
+            allowsMultipleAnswers: true,
+            isAnonymous: false
+        }
     }
 
     public isChooseChatState() {
@@ -79,7 +86,7 @@ export default class NewPoolTask {
         this.assertIsNotUndefined(this.question);
         this.assertAnswers(this.answers);
 
-        return this.controller.createPool(this.chatId, this.name, this.question, this.answers);
+        return this.controller.createPool(this.chatId, this.name, this.question, this.answers, this.options);
     }
 
     private assertIsNotUndefined(data: string | number | undefined): asserts data is string | number {

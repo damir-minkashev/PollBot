@@ -9,16 +9,19 @@ import SaveQueryEntity from "./app/queries/SaveQueryEntity";
 import PoolController from "./controllers/PoolController";
 import {Update} from "typegram";
 import SendPoolTask from "./app/tasks/SendPoolTask";
+import DelPoolTask from "./app/tasks/DelPoolTask";
+import ShowPoolsTask from "./app/tasks/ShowPoolsTask";
 
 config();
 
-if(!process.env.BOT_TOKEN)
-    throw new Error("BOT_TOKEN is empty");
+// if(!process.env.BOT_TOKEN)
+//     throw new Error("BOT_TOKEN is empty");
 
-const bot = new Telegraf(process.env.BOT_TOKEN);
+const bot = new Telegraf("5237809364:AAEjk5by7hzYGNIPfP26ovo4LETTgeE4iDM");
 const controller = new ChatController();
 const poolController = new PoolController();
-const taskList = new Map<number, NewPoolTask | SendPoolTask>();
+const taskList = new Map<number, TaskTypes>();
+
 
 bot.on("my_chat_member", async (res) => {
     const data = res.update.my_chat_member;
@@ -33,63 +36,27 @@ bot.on("my_chat_member", async (res) => {
 bot.command("/sendpool", async (ctx) => {
     sendChatKeyboard(ctx).then(() => {
         taskList.set(ctx.message.from.id, new SendPoolTask(poolController));
-    })
+    });
 });
 
-bot.command("/delpool", () => {
-
+bot.command("/delpool", (ctx) => {
+    sendChatKeyboard(ctx).then(() => {
+        taskList.set(ctx.message.from.id, new DelPoolTask(poolController));
+    });
 });
 
-bot.on("callback_query", async (ctx) => {
-    let task = taskList.get(ctx.update.callback_query.from.id);
-    if(!task)
-        return;
-
-    if(!("data" in ctx.update.callback_query))
-        return;
-
-    let data: QueryTypes = JSON.parse(ctx.update.callback_query.data);
-    if(task instanceof NewPoolTask) {
-        if(data.type === QueryTypeEnum.CHOOSE_CHAT) {
-            task.setChatId(data.chatId);
-            ctx.reply("Пришлите название опроса");
-            return;
-        }
-
-        if(data.type === QueryTypeEnum.SAVE_POOL) {
-            if(data.flag) {
-                await task.store();
-                ctx.reply("Опрос сохранен")
-            } else {
-                ctx.reply("Опрос отменен. Выберите новую команду")
-            }
-
-            taskList.delete(ctx.update.callback_query.from.id);
-        }
-        return;
-    }
-
-    if(data.type === QueryTypeEnum.CHOOSE_CHAT) {
-        let poolList = await task.getPools(data.chatId);
-        let buttons = poolList.map(el => Markup.button.callback(el.name, JSON.stringify({poolId: el.id, type: QueryTypeEnum.CHOOSE_POOL})));
-
-        ctx.reply("Выберите опрос", Markup.inlineKeyboard(buttons));
-        task.setChatId(data.chatId);
-    }
-
-    if(data.type === QueryTypeEnum.CHOOSE_POOL) {
-        let pool = task.getPool(data.poolId);
-        if(pool)
-            bot.telegram.sendPoll()
-    }
-
+bot.command("/showpools", (ctx) => {
+    sendChatKeyboard(ctx).then(() => {
+        taskList.set(ctx.message.from.id, new ShowPoolsTask(poolController));
+    });
 });
 
 bot.command("/newpool", async (ctx) => {
     sendChatKeyboard(ctx).then(() => {
-        taskList.set(ctx.message.from.id, new NewPoolTask(poolController, ctx));
+        taskList.set(ctx.message.from.id, new NewPoolTask(poolController));
     })
 });
+
 
 bot.command("/done", async (ctx) => {
     let task = taskList.get(ctx.message.from.id);
@@ -114,6 +81,94 @@ bot.command("/done", async (ctx) => {
     });
     ctx.reply("Сохранить опрос?", buttons)
 })
+
+bot.on("callback_query", async (ctx) => {
+    let task = taskList.get(ctx.update.callback_query.from.id);
+    if(!task)
+        return;
+
+    if(!("data" in ctx.update.callback_query))
+        return;
+    await ctx.editMessageReplyMarkup({ reply_markup: { remove_keyboard: true } } as  any)
+    let data: QueryTypes = JSON.parse(ctx.update.callback_query.data);
+    if(task instanceof NewPoolTask) {
+        if(data.type === QueryTypeEnum.CHOOSE_CHAT) {
+            task.setChatId(data.chatId);
+            ctx.reply("Пришлите название опроса");
+            return;
+        }
+
+        if(data.type === QueryTypeEnum.SAVE_POOL) {
+            if(data.flag) {
+                await task.store();
+                ctx.reply("Опрос сохранен")
+            } else {
+                ctx.reply("Опрос отменен. Выберите новую команду")
+            }
+
+            taskList.delete(ctx.update.callback_query.from.id);
+        }
+        return;
+    }
+    if(task instanceof SendPoolTask) {
+        if(data.type === QueryTypeEnum.CHOOSE_CHAT) {
+            task.setChatId(data.chatId);
+            return sendChoosePool(data.chatId, ctx);
+        }
+
+        if(data.type === QueryTypeEnum.CHOOSE_POOL) {
+            let pool = await task.getPool(data.poolId);
+            if(pool)
+                return bot.telegram.sendPoll(pool.chat_id, pool.question, pool.answers, {
+                    is_anonymous: pool.options.isAnonymous,
+                    allows_multiple_answers: pool.options.allowsMultipleAnswers,
+                }).then(async (msg) => {
+                    if(pool?.options.pinPool) {
+                        let chatId = +pool.chat_id;
+                        checkAccess(chatId, ctx.botInfo.id).then((res) => {
+                            res ? bot.telegram.pinChatMessage(chatId, msg.message_id) : undefined;
+                        })
+                    }
+                    taskList.delete(ctx.update.callback_query.from.id);
+                })
+        }
+        return;
+    }
+
+    if(task instanceof DelPoolTask) {
+        if(data.type === QueryTypeEnum.CHOOSE_CHAT) {
+            task.setChatId(data.chatId);
+            return sendChoosePool(data.chatId, ctx);
+        }
+
+        if(data.type === QueryTypeEnum.CHOOSE_POOL) {
+            task.deletePool(data.poolId);
+            taskList.delete(ctx.update.callback_query.from.id);
+            return ctx.reply("Опрос удален")
+        }
+        return;
+    }
+
+    if(task instanceof ShowPoolsTask) {
+        if(data.type === QueryTypeEnum.CHOOSE_CHAT) {
+            task.setChatId(data.chatId);
+            return sendChoosePool(data.chatId, ctx);
+        }
+
+        if(data.type === QueryTypeEnum.CHOOSE_POOL) {
+            let pool = await task.getPool(data.poolId);
+            if(pool)
+                return ctx.replyWithPoll(pool.question, pool.answers, {
+                    is_anonymous: pool.options.isAnonymous,
+                    allows_multiple_answers: pool.options.allowsMultipleAnswers,
+                }).then(() => {
+                    taskList.delete(ctx.update.callback_query.from.id);
+                })
+        }
+        return;
+    }
+
+});
 
 bot.on("text", (ctx) => {
 
@@ -148,7 +203,7 @@ bot.on("text", (ctx) => {
 
         return;
     }
-})
+});
 
 async function sendChatKeyboard(ctx: Context<Update>) {
     if(!ctx.message)
@@ -157,12 +212,28 @@ async function sendChatKeyboard(ctx: Context<Update>) {
     let chatList = await getValidChatForUser(ctx.message.from.id);
     let buttons = chatList.map(el => Markup.button.callback(el.title, JSON.stringify({chatId: el.id, type: QueryTypeEnum.CHOOSE_CHAT})));
 
+    if(buttons.length === 0)
+        return ctx.reply("Нет доступных чатов. Сначала добавьте бота в чат, в который вы хотите публиковать опросы. " +
+            "Вы также должны обладать правами администратора.");
+
     return ctx.reply(
         'Выберите чат',
         Markup.inlineKeyboard(buttons, {
-            columns: 3
+            columns: 4
         })
     )
+}
+
+async function sendChoosePool(chatId: number, ctx: Context) {
+    let poolList = await poolController.getPoolList(chatId);
+    let buttons = poolList.map(el => Markup.button.callback(el.command, JSON.stringify({poolId: el.id, type: QueryTypeEnum.CHOOSE_POOL})));
+
+    if(buttons.length === 0)
+        return ctx.reply("Для этого чата нет созданных опросов. Отправьте /newpool, чтобы создать новый опрос.");
+
+    return ctx.reply("Выберите опрос", Markup.inlineKeyboard(buttons, {
+        columns: 4,
+    }));
 }
 
 async function getValidChatForUser(userId: number) {
@@ -187,6 +258,26 @@ async function checkAccess(chatId: number, userId: number) {
     })
 }
 
-bot.launch();
+bot.telegram.setMyCommands([{
+    command: "/showpools",
+    description: "Вывести все опросы",
+}, {
+    command: "/newpool",
+    description: "Добавить новый опрос"
+}, {
+    command: "/delpool",
+    description: "Удалить опрос"
+}, {
+    command: "/sendpool",
+    description: "Отправить опрос"
+}
+]).then(() => bot.launch());
+
+// bot.launch();
+
+process.once('SIGINT', () => bot.stop('SIGINT'))
+process.once('SIGTERM', () => bot.stop('SIGTERM'))
 
 type QueryTypes = ChatQueryEntity | PoolQueryEntity | SaveQueryEntity;
+
+type TaskTypes = NewPoolTask | SendPoolTask | DelPoolTask | ShowPoolsTask;
