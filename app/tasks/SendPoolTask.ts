@@ -5,8 +5,14 @@ export default class SendPoolTask {
 
     public chatId: number | undefined;
 
+    public poolId: string = "";
+
     constructor(private poolController: PoolController) {
 
+    }
+
+    public setPoolId(poolId: string) {
+        this.poolId = poolId;
     }
 
     public setChatId(chatId: number) {

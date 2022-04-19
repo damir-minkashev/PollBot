@@ -1,7 +1,7 @@
 import {Context, Markup, Telegraf} from "telegraf";
 import {config} from "dotenv"
 import ChatController from "./controllers/ChatController";
-import NewPoolTask from "./app/tasks/NewPoolTask";
+import NewPoolTask, {PoolData} from "./app/tasks/NewPoolTask";
 import {QueryTypeEnum} from "./app/queries/QueryTypeEnum";
 import ChatQueryEntity from "./app/queries/ChatQueryEntity";
 import PoolQueryEntity from "./app/queries/PoolQueryEntity";
@@ -11,6 +11,9 @@ import {Update} from "typegram";
 import SendPoolTask from "./app/tasks/SendPoolTask";
 import DelPoolTask from "./app/tasks/DelPoolTask";
 import ShowPoolsTask from "./app/tasks/ShowPoolsTask";
+import {PoolOptionQueryCustom, PoolOptionQueryDefault, PoolOptionQueryTypes} from "./app/queries/PoolOptionQueryEntity";
+import {PoolOptionsSchema} from "./schema/PoolOptionsSchema";
+import {PoolSchema} from "./schema/PoolSchema";
 
 config();
 
@@ -66,20 +69,20 @@ bot.command("/done", async (ctx) => {
     if(!(task instanceof NewPoolTask))
         return;
 
-    task.setDone();
-    let data = task.getPoolData();
-    await ctx.replyWithPoll(data.question, data.answers, {
-        is_anonymous:false,
-        allows_multiple_answers: true
-    });
+    if(task.isSetAnswerState()) {
+        task.setDone();
+        return ctx.reply("Выберите настройки", Markup.inlineKeyboard([
+            Markup.button.callback("📌 Закрепить", JSON.stringify({type: QueryTypeEnum.CHOOSE_OPTION, key: "pinPool", value: true} as PoolOptionQueryCustom)),
+            Markup.button.callback("🥷🏻 Анонимно", JSON.stringify({type: QueryTypeEnum.CHOOSE_OPTION, key: "isAnonymous", value: true} as PoolOptionQueryCustom)),
+            Markup.button.callback("☑ Несколько ответов", JSON.stringify({type: QueryTypeEnum.CHOOSE_OPTION, key: "allowsMultipleAnswers", value: true} as PoolOptionQueryCustom)),
+            Markup.button.callback("🗓 Добавить дату", JSON.stringify({type: QueryTypeEnum.CHOOSE_OPTION, key: "addTimeToTitle", value: true} as PoolOptionQueryCustom)),
+            Markup.button.callback("📌 ☑ 🗓 По умолчанию", JSON.stringify({type: QueryTypeEnum.CHOOSE_OPTION, default: true} as PoolOptionQueryDefault)),
+        ], {
+            columns:2
+        }));
+    }
 
-    let buttons = Markup.inlineKeyboard([
-        Markup.button.callback("Сохранить", JSON.stringify({flag: true, type: QueryTypeEnum.SAVE_POOL})),
-        Markup.button.callback("Отмена", JSON.stringify({flag: false, type: QueryTypeEnum.SAVE_POOL})),
-    ], {
-        columns: 3
-    });
-    ctx.reply("Сохранить опрос?", buttons)
+    return admitPool(ctx, task.getPoolData());
 })
 
 bot.on("callback_query", async (ctx) => {
@@ -89,16 +92,28 @@ bot.on("callback_query", async (ctx) => {
 
     if(!("data" in ctx.update.callback_query))
         return;
-    await ctx.editMessageReplyMarkup({ reply_markup: { remove_keyboard: true } } as  any)
+
     let data: QueryTypes = JSON.parse(ctx.update.callback_query.data);
     if(task instanceof NewPoolTask) {
         if(data.type === QueryTypeEnum.CHOOSE_CHAT) {
+            await ctx.editMessageReplyMarkup({ reply_markup: { remove_keyboard: true } } as  any)
             task.setChatId(data.chatId);
             ctx.reply("Пришлите название опроса");
             return;
         }
 
+        if(data.type === QueryTypeEnum.CHOOSE_OPTION) {
+            if(data.default) {
+                task.setDefaultOption();
+                return admitPool(ctx, task.getPoolData());
+            }
+
+            task.setOption(data.key, data.value);
+            return choosePoolOption(ctx, data.key);
+        }
+
         if(data.type === QueryTypeEnum.SAVE_POOL) {
+            await ctx.editMessageReplyMarkup({ reply_markup: { remove_keyboard: true } } as  any)
             if(data.flag) {
                 await task.store();
                 ctx.reply("Опрос сохранен")
@@ -111,6 +126,7 @@ bot.on("callback_query", async (ctx) => {
         return;
     }
     if(task instanceof SendPoolTask) {
+        await ctx.editMessageReplyMarkup({ reply_markup: { remove_keyboard: true } } as  any)
         if(data.type === QueryTypeEnum.CHOOSE_CHAT) {
             task.setChatId(data.chatId);
             return sendChoosePool(data.chatId, ctx);
@@ -118,24 +134,22 @@ bot.on("callback_query", async (ctx) => {
 
         if(data.type === QueryTypeEnum.CHOOSE_POOL) {
             let pool = await task.getPool(data.poolId);
-            if(pool)
-                return bot.telegram.sendPoll(pool.chat_id, pool.question, pool.answers, {
-                    is_anonymous: pool.options.isAnonymous,
-                    allows_multiple_answers: pool.options.allowsMultipleAnswers,
-                }).then(async (msg) => {
-                    if(pool?.options.pinPool) {
-                        let chatId = +pool.chat_id;
-                        checkAccess(chatId, ctx.botInfo.id).then((res) => {
-                            res ? bot.telegram.pinChatMessage(chatId, msg.message_id) : undefined;
-                        })
-                    }
-                    taskList.delete(ctx.update.callback_query.from.id);
-                })
+            if(!pool)
+                return;
+
+            if(!pool.options.addTimeToTitle) {
+                taskList.delete(ctx.update.callback_query.from.id);
+                return sendPoolToChat(ctx, pool);
+            } else {
+                task.setPoolId(data.poolId);
+                ctx.reply("Пришлите дату.");
+            }
         }
         return;
     }
 
     if(task instanceof DelPoolTask) {
+        await ctx.editMessageReplyMarkup({ reply_markup: { remove_keyboard: true } } as  any)
         if(data.type === QueryTypeEnum.CHOOSE_CHAT) {
             task.setChatId(data.chatId);
             return sendChoosePool(data.chatId, ctx);
@@ -150,6 +164,7 @@ bot.on("callback_query", async (ctx) => {
     }
 
     if(task instanceof ShowPoolsTask) {
+        await ctx.editMessageReplyMarkup({ reply_markup: { remove_keyboard: true } } as  any)
         if(data.type === QueryTypeEnum.CHOOSE_CHAT) {
             task.setChatId(data.chatId);
             return sendChoosePool(data.chatId, ctx);
@@ -170,38 +185,47 @@ bot.on("callback_query", async (ctx) => {
 
 });
 
-bot.on("text", (ctx) => {
+bot.on("text", async (ctx) => {
 
     let task = taskList.get(ctx.message.from.id);
     if(!task)
         return;
 
-    if(!(task instanceof NewPoolTask))
-        return;
-
-    if(task.isSetNameState()) {
-        task.setName(ctx.message.text);
-        ctx.reply("Задайте вопрос");
-        return;
-    }
-
-    if(task.isSetQuestionState()) {
-        task.setQuestion(ctx.message.text);
-        ctx.reply("Задайте варианты ответов");
-        return;
-    }
-
-    if(task.isSetAnswerState()) {
-        task.addAnswer(ctx.message.text);
-        if(task.countAnswer() <= 10 && task.countAnswer() > 1) {
-            ctx.reply("Задайте варианты ответов. Если вы хотите закончить, пришлите /done");
-        } else if(task.countAnswer() <= 1) {
-            ctx.reply("Вариантов ответов должно быть минимум два. Задайте варианты ответов.");
-        } else {
-            ctx.reply("Достигнуто максимальное количество ответов. Пришлите /done");
+    if(task instanceof NewPoolTask) {
+        if(task.isSetNameState()) {
+            task.setName(ctx.message.text);
+            ctx.reply("Задайте вопрос");
+            return;
         }
 
-        return;
+        if(task.isSetQuestionState()) {
+            task.setQuestion(ctx.message.text);
+            ctx.reply("Задайте варианты ответов");
+            return;
+        }
+
+        if(task.isSetAnswerState()) {
+            task.addAnswer(ctx.message.text);
+            if(task.countAnswer() <= 10 && task.countAnswer() > 1) {
+                ctx.reply("Задайте варианты ответов. Если вы хотите закончить, пришлите /done");
+            } else if(task.countAnswer() <= 1) {
+                ctx.reply("Вариантов ответов должно быть минимум два. Задайте варианты ответов.");
+            } else {
+                ctx.reply("Достигнуто максимальное количество ответов. Пришлите /done");
+            }
+
+            return;
+        }
+    }
+
+    if(task instanceof SendPoolTask) {
+        const pool = await task.getPool(task.poolId);
+        if(pool) {
+            pool.question = ctx.message.text + " " + pool.question;
+            taskList.delete(ctx.message.from.id);
+            return sendPoolToChat(ctx, pool);
+        }
+
     }
 });
 
@@ -234,6 +258,53 @@ async function sendChoosePool(chatId: number, ctx: Context) {
     return ctx.reply("Выберите опрос", Markup.inlineKeyboard(buttons, {
         columns: 4,
     }));
+}
+
+async function choosePoolOption(ctx: Context, key: keyof PoolOptionsSchema) {
+    switch (key) {
+        case "addTimeToTitle":
+            return ctx.reply("✅ Добавить дату в опрос. Чтобы закончить, нажмите /done.");
+        case "pinPool":
+            return ctx.reply("✅ Закрепить опрос. Чтобы закончить, нажмите /done.");
+        case "allowsMultipleAnswers":
+            return ctx.reply("✅ Добавлен мультиселект. Чтобы закончить, нажмите /done.");
+        case "isAnonymous":
+            return ctx.reply("✅ Сделать опрос анонимным. Чтобы закончить, нажмите /done.");
+    }
+}
+
+/**
+ *
+ * @param ctx
+ * @param data
+ */
+async function admitPool(ctx: Context, data: PoolData) {
+    await ctx.replyWithPoll(data.question, data.answers, {
+        is_anonymous: data.options.isAnonymous,
+        allows_multiple_answers: data.options.allowsMultipleAnswers,
+    });
+
+    let buttons = Markup.inlineKeyboard([
+        Markup.button.callback("Сохранить", JSON.stringify({flag: true, type: QueryTypeEnum.SAVE_POOL})),
+        Markup.button.callback("Отмена", JSON.stringify({flag: false, type: QueryTypeEnum.SAVE_POOL})),
+    ], {
+        columns: 3
+    });
+    return ctx.reply("Сохранить опрос?", buttons);
+}
+
+async function sendPoolToChat(ctx: Context, pool: PoolSchema) {
+    return bot.telegram.sendPoll(pool.chat_id, pool.question, pool.answers, {
+        is_anonymous: pool.options.isAnonymous,
+        allows_multiple_answers: pool.options.allowsMultipleAnswers,
+    }).then(async (msg) => {
+        if(pool?.options.pinPool) {
+            let chatId = +pool.chat_id;
+            checkAccess(chatId, ctx.botInfo.id).then((res) => {
+                res ? bot.telegram.pinChatMessage(chatId, msg.message_id) : undefined;
+            })
+        }
+    })
 }
 
 async function getValidChatForUser(userId: number) {
@@ -278,6 +349,6 @@ bot.telegram.setMyCommands([{
 process.once('SIGINT', () => bot.stop('SIGINT'))
 process.once('SIGTERM', () => bot.stop('SIGTERM'))
 
-type QueryTypes = ChatQueryEntity | PoolQueryEntity | SaveQueryEntity;
+type QueryTypes = ChatQueryEntity | PoolQueryEntity | SaveQueryEntity | PoolOptionQueryTypes;
 
 type TaskTypes = NewPoolTask | SendPoolTask | DelPoolTask | ShowPoolsTask;

@@ -21,9 +21,10 @@ export default class NewPoolTask {
     constructor(private controller: PoolController) {
         this.poolState = NewPoolStateEnum.CHOOSE_CHAT;
         this.options = {
-            pinPool: true,
+            pinPool: false,
             allowsMultipleAnswers: true,
-            isAnonymous: false
+            isAnonymous: false,
+            addTimeToTitle: false,
         }
     }
 
@@ -41,6 +42,13 @@ export default class NewPoolTask {
 
     public isSetAnswerState() {
         return this.poolState === NewPoolStateEnum.SET_ANSWER;
+    }
+
+    /**
+     *
+     */
+    public isSetOptions() {
+        return this.poolState === NewPoolStateEnum.SET_OPTIONS;
     }
 
     public setChatId(chatId: number) {
@@ -62,6 +70,16 @@ export default class NewPoolTask {
         this.answers.push(answer);
     }
 
+    public setOption<K extends keyof PoolOptionsSchema>(key: K, value: PoolOptionsSchema[K]) {
+        this.options[key] = value;
+    }
+
+    public setDefaultOption() {
+        this.options.pinPool = true;
+        this.options.allowsMultipleAnswers = true;
+        this.options.addTimeToTitle = true;
+    }
+
     public countAnswer() {
         return this.answers.length;
     }
@@ -70,13 +88,14 @@ export default class NewPoolTask {
         this.poolState = NewPoolStateEnum.DONE;
     }
 
-    public getPoolData(): {question: string, answers: string[]} {
+    public getPoolData(): PoolData {
         this.assertIsNotUndefined(this.question);
         this.assertAnswers(this.answers);
 
         return {
             question: this.question,
             answers: this.answers,
+            options: this.options
         }
     }
 
@@ -98,4 +117,10 @@ export default class NewPoolTask {
         if(answers.length === 0)
             throw new Error("Answers is empty");
     }
+}
+
+export interface PoolData {
+    question: string,
+    answers: string[],
+    options: PoolOptionsSchema,
 }

@@ -6,4 +6,6 @@ export interface PoolOptionsSchema {
 
     pinPool: boolean,
 
+    addTimeToTitle: boolean,
+
 }
