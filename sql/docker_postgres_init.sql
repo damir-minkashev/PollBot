@@ -1,17 +1,17 @@
-create TABLE chats(
+create TABLE IF NOT EXISTS chats(
     id BIGINT PRIMARY KEY,
     title VARCHAR(256)
 );
 
-create TABLE pools(
-    id uuid NOT null,
+create TABLE IF NOT EXISTS pools(
+    id uuid NOT null PRIMARY KEY,
     command VARCHAR(256),
     chat_id BIGINT,
 
-    FOREIGN KEY (chat_id) REFERENCES chats (id) ON DELETE CASCADE
+    FOREIGN KEY (chat_id) REFERENCES chats (id)
 );
 
-create TABLE pool_data(
+create TABLE IF NOT EXISTS pool_data(
     id uuid NOT null,
     question VARCHAR(256),
     answers VARCHAR(256) [],

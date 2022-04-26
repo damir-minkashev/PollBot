@@ -25,6 +25,24 @@ const controller = new ChatController();
 const poolController = new PoolController();
 const taskList = new Map<number, TaskTypes>();
 
+// await bot.telegram.setMyCommands([{
+//     command: "/showpools",
+//     description: "Вывести все опросы",
+// }, {
+//     command: "/newpool",
+//     description: "Добавить новый опрос"
+// }, {
+//     command: "/delpool",
+//     description: "Удалить опрос"
+// }, {
+//     command: "/sendpool",
+//     description: "Отправить опрос"
+// }
+// ], {
+//     scope: {
+//         type: "all_private_chats",
+//     }
+// });
 
 bot.on("my_chat_member", async (res) => {
     const data = res.update.my_chat_member;
@@ -36,25 +54,44 @@ bot.on("my_chat_member", async (res) => {
         await controller.deleteChat(data.chat.id);
 });
 
+bot.command("/start", (ctx) => {
+    if(ctx.message.chat.type !== "private")
+        return;
+
+    ctx.reply("Для начала добавьте бота в чат, куда вы хотите отправлять сообщения и дайте права администратора. Затем создайте опрос /newpool")
+})
+
 bot.command("/sendpool", async (ctx) => {
+    if(ctx.message.chat.type !== "private")
+        return;
+
     sendChatKeyboard(ctx).then(() => {
         taskList.set(ctx.message.from.id, new SendPoolTask(poolController));
     });
 });
 
 bot.command("/delpool", (ctx) => {
+    if(ctx.message.chat.type !== "private")
+        return;
+
     sendChatKeyboard(ctx).then(() => {
         taskList.set(ctx.message.from.id, new DelPoolTask(poolController));
     });
 });
 
 bot.command("/showpools", (ctx) => {
+    if(ctx.message.chat.type !== "private")
+        return;
+
     sendChatKeyboard(ctx).then(() => {
         taskList.set(ctx.message.from.id, new ShowPoolsTask(poolController));
     });
 });
 
 bot.command("/newpool", async (ctx) => {
+    if(ctx.message.chat.type !== "private")
+        return;
+
     sendChatKeyboard(ctx).then(() => {
         taskList.set(ctx.message.from.id, new NewPoolTask(poolController));
     })
@@ -62,6 +99,9 @@ bot.command("/newpool", async (ctx) => {
 
 
 bot.command("/done", async (ctx) => {
+    if(ctx.message.chat.type !== "private")
+        return;
+
     let task = taskList.get(ctx.message.from.id);
     if(!task)
         return;
@@ -81,8 +121,6 @@ bot.command("/done", async (ctx) => {
             columns:2
         }));
     }
-
-    return admitPool(ctx, task.getPoolData());
 })
 
 bot.on("callback_query", async (ctx) => {
@@ -223,7 +261,8 @@ bot.on("text", async (ctx) => {
         if(pool) {
             pool.question = ctx.message.text + " " + pool.question;
             taskList.delete(ctx.message.from.id);
-            return sendPoolToChat(ctx, pool);
+            await sendPoolToChat(ctx, pool);
+            ctx.reply(`✅ Опрос ${ pool.question } отправлен`);
         }
 
     }
@@ -279,6 +318,7 @@ async function choosePoolOption(ctx: Context, key: keyof PoolOptionsSchema) {
  * @param data
  */
 async function admitPool(ctx: Context, data: PoolData) {
+    await ctx.editMessageReplyMarkup({ reply_markup: { remove_keyboard: true } } as  any)
     await ctx.replyWithPoll(data.question, data.answers, {
         is_anonymous: data.options.isAnonymous,
         allows_multiple_answers: data.options.allowsMultipleAnswers,
@@ -329,25 +369,13 @@ async function checkAccess(chatId: number, userId: number) {
     })
 }
 
-bot.telegram.setMyCommands([{
-    command: "/showpools",
-    description: "Вывести все опросы",
-}, {
-    command: "/newpool",
-    description: "Добавить новый опрос"
-}, {
-    command: "/delpool",
-    description: "Удалить опрос"
-}, {
-    command: "/sendpool",
-    description: "Отправить опрос"
-}
-]).then(() => bot.launch());
+bot.launch();
+// process.once('SIGINT', () => bot.stop('SIGINT'))
+// process.once('SIGTERM', () => bot.stop('SIGTERM'))
 
-// bot.launch();
-
-process.once('SIGINT', () => bot.stop('SIGINT'))
-process.once('SIGTERM', () => bot.stop('SIGTERM'))
+process.on("uncaughtException", (e) => {
+    console.log(e);
+});
 
 type QueryTypes = ChatQueryEntity | PoolQueryEntity | SaveQueryEntity | PoolOptionQueryTypes;
 

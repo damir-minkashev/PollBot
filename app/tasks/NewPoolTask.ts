@@ -22,7 +22,7 @@ export default class NewPoolTask {
         this.poolState = NewPoolStateEnum.CHOOSE_CHAT;
         this.options = {
             pinPool: false,
-            allowsMultipleAnswers: true,
+            allowsMultipleAnswers: false,
             isAnonymous: false,
             addTimeToTitle: false,
         }

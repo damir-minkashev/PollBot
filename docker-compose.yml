@@ -1,0 +1,37 @@
+version: '3.0'
+
+services:
+  main:
+    container_name: gimme-bot_main
+    build:
+      context: .
+    env_file:
+      - .env
+    volumes:
+      - .:/app
+      - /app/node_modules
+    ports:
+      - 5000:5000
+    command: npm run start
+    depends_on:
+      - postgres
+    restart: always
+  postgres:
+    container_name: gimme-bot_postgres
+    image: postgres:14
+    environment:
+      PG_DATA: /var/lib/postgresql/data
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: gimme
+    ports:
+      - 5432:5432
+    volumes:
+      # - pgdata:/var/lib/postgresql/data
+      # copy the sql script to create tables
+      - ./sql/docker_postgres_init.sql:/docker-entrypoint-initdb.d/docker_postgres_init.sql
+      # copy the sql script to fill tables
+      # - ./sql/docker_postgres_init.sql:/docker-entrypoint-initdb.d/docker_postgres_init.sql
+    restart: always
+volumes:
+  pgdata:
