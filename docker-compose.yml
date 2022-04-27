@@ -5,8 +5,6 @@ services:
     container_name: gimme-bot_main
     build:
       context: .
-    env_file:
-      - .env
     volumes:
       - .:/app
       - /app/node_modules

@@ -25,24 +25,28 @@ const controller = new ChatController();
 const poolController = new PoolController();
 const taskList = new Map<number, TaskTypes>();
 
-// await bot.telegram.setMyCommands([{
-//     command: "/showpools",
-//     description: "Вывести все опросы",
-// }, {
-//     command: "/newpool",
-//     description: "Добавить новый опрос"
-// }, {
-//     command: "/delpool",
-//     description: "Удалить опрос"
-// }, {
-//     command: "/sendpool",
-//     description: "Отправить опрос"
-// }
-// ], {
-//     scope: {
-//         type: "all_private_chats",
-//     }
-// });
+await bot.telegram.setMyCommands([{
+    command: "/showpools",
+    description: "Вывести все опросы",
+}, {
+    command: "/newpool",
+    description: "Добавить новый опрос"
+}, {
+    command: "/delpool",
+    description: "Удалить опрос"
+}, {
+    command: "/sendpool",
+    description: "Отправить опрос"
+}
+], {
+    scope: {
+        type: "default",
+    }
+});
+
+await bot.telegram.setMyCommands([], {
+    scope: {type:"all_group_chats"}
+})
 
 bot.on("my_chat_member", async (res) => {
     const data = res.update.my_chat_member;
@@ -363,7 +367,10 @@ async function getValidChatForUser(userId: number) {
 }
 
 async function checkAccess(chatId: number, userId: number) {
-    let info = await bot.telegram.getChatAdministrators(chatId);
+    let info = await bot.telegram.getChatAdministrators(chatId).catch(() =>{});
+    if(!info)
+        return ;
+
     return info.find((el) => {
         return el.user.id === userId;
     })
