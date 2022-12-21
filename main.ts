@@ -1,5 +1,5 @@
 import {Context, Markup, Telegraf} from "telegraf";
-import {config} from "dotenv"
+import {config as dotenv} from "dotenv"
 import ChatController from "./controllers/ChatController";
 import NewPoolTask, {PoolData} from "./app/tasks/NewPoolTask";
 import {QueryTypeEnum} from "./app/queries/QueryTypeEnum";
@@ -14,13 +14,23 @@ import ShowPoolsTask from "./app/tasks/ShowPoolsTask";
 import {PoolOptionQueryCustom, PoolOptionQueryDefault, PoolOptionQueryTypes} from "./app/queries/PoolOptionQueryEntity";
 import {PoolOptionsSchema} from "./schema/PoolOptionsSchema";
 import {PoolSchema} from "./schema/PoolSchema";
+import connection from "./mongo";
+import config from "./config.json" assert { type: 'json' };
+import Chat from "./models/Chat";
 
-config();
+dotenv();
 
 if(!process.env.BOT_TOKEN)
     throw new Error("BOT_TOKEN is empty");
 
 const bot = new Telegraf(process.env.BOT_TOKEN);
+
+await connection(config.mongodb.uri);
+await Chat.create({
+    title: 'First chat'
+});
+console.log('aadd');
+
 const controller = new ChatController();
 const poolController = new PoolController();
 const taskList = new Map<number, TaskTypes>();

@@ -8,7 +8,7 @@ export default class ChatController {
     private service: ChatService;
 
     constructor() {
-        this.service = new ChatService();
+       //  this.service = new ChatService();
     }
 
     public async createChat(id: number, title: string) {
