@@ -1,6 +1,7 @@
 import pool from "../db";
 import ChatSchema from "../schema/ChatSchema";
 import ChatService from "../service/ChatService";
+import {ChatDocument} from "../models/types/chat";
 
 //todo implement Abstract interface for DI
 export default class ChatController {
@@ -8,7 +9,7 @@ export default class ChatController {
     private service: ChatService;
 
     constructor() {
-       //  this.service = new ChatService();
+        this.service = new ChatService();
     }
 
     public async createChat(id: number, title: string) {
@@ -20,7 +21,7 @@ export default class ChatController {
         await this.service.createChat(id, title);
     }
 
-    public getChat(id: number): Promise<ChatSchema | undefined> {
+    public getChat(id: number): Promise<ChatDocument | null> {
         return this.service.getChat(id);
     }
 
@@ -28,7 +29,7 @@ export default class ChatController {
 
     }
 
-    public deleteChat(id: number): Promise<ChatSchema | undefined> {
+    public deleteChat(id: number): Promise<void> {
         return this.service.deleteChat(id);
     }
 

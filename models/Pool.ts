@@ -1,6 +1,7 @@
 import mongoose, {Schema, Types} from "mongoose";
+import {PoolDocument} from "./types/pool";
 
-const PoolSchema = new Schema({
+const PoolSchema = new Schema<PoolDocument>({
     _chat: {
         type: Types.ObjectId,
         ref: 'Chat',

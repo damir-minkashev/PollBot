@@ -17,6 +17,9 @@ import {PoolSchema} from "./schema/PoolSchema";
 import connection from "./mongo";
 import config from "./config.json" assert { type: 'json' };
 import Chat from "./models/Chat";
+import {PoolDocument} from "./models/types/pool";
+import Pool from "./models/Pool";
+import {ChatDocument} from "./models/types/chat";
 
 dotenv();
 
@@ -26,10 +29,6 @@ if(!process.env.BOT_TOKEN)
 const bot = new Telegraf(process.env.BOT_TOKEN);
 
 await connection(config.mongodb.uri);
-await Chat.create({
-    title: 'First chat'
-});
-console.log('aadd');
 
 const controller = new ChatController();
 const poolController = new PoolController();
@@ -286,8 +285,9 @@ async function sendChatKeyboard(ctx: Context<Update>) {
     if(!ctx.message)
         return;
 
+    console.log(ctx.message.from.id);
     let chatList = await getValidChatForUser(ctx.message.from.id);
-    let buttons = chatList.map(el => Markup.button.callback(el.title, JSON.stringify({chatId: el.id, type: QueryTypeEnum.CHOOSE_CHAT})));
+    let buttons = chatList.map(el => Markup.button.callback(el.title, JSON.stringify({chatId: el.chatId, type: QueryTypeEnum.CHOOSE_CHAT})));
 
     if(buttons.length === 0)
         return ctx.reply("Нет доступных чатов. Сначала добавьте бота в чат, в который вы хотите публиковать опросы. " +
@@ -303,7 +303,7 @@ async function sendChatKeyboard(ctx: Context<Update>) {
 
 async function sendChoosePool(chatId: number, ctx: Context) {
     let poolList = await poolController.getPoolList(chatId);
-    let buttons = poolList.map(el => Markup.button.callback(el.command, JSON.stringify({poolId: el.id, type: QueryTypeEnum.CHOOSE_POOL})));
+    let buttons = poolList.map(el => Markup.button.callback(el.command, JSON.stringify({poolId: el, type: QueryTypeEnum.CHOOSE_POOL})));
 
     if(buttons.length === 0)
         return ctx.reply("Для этого чата нет созданных опросов. Отправьте /newpool, чтобы создать новый опрос.");
@@ -347,13 +347,16 @@ async function admitPool(ctx: Context, data: PoolData) {
     return ctx.reply("Сохранить опрос?", buttons);
 }
 
-async function sendPoolToChat(ctx: Context, pool: PoolSchema) {
-    return bot.telegram.sendPoll(pool.chat_id, pool.question, pool.answers, {
+async function sendPoolToChat(ctx: Context, pool: PoolDocument) {
+    await Pool.populate(pool, '_chat');
+    const chat = pool._chat as ChatDocument;
+
+    return bot.telegram.sendPoll(chat.chatId, pool.question, pool.answers, {
         is_anonymous: pool.options.isAnonymous,
         allows_multiple_answers: pool.options.allowsMultipleAnswers,
     }).then(async (msg) => {
         if(pool?.options.pinPool) {
-            let chatId = +pool.chat_id;
+            let chatId = +chat.chatId;
             checkAccess(chatId, ctx.botInfo.id).then((res) => {
                 res ? bot.telegram.pinChatMessage(chatId, msg.message_id) : undefined;
             })
@@ -366,7 +369,7 @@ async function getValidChatForUser(userId: number) {
 
     let result = [];
     for(let chat of chatList) {
-        let member = await checkAccess(chat.id, userId);
+        let member = await checkAccess(chat.chatId, userId);
         if(!member)
             continue;
 
