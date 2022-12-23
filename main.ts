@@ -303,7 +303,7 @@ async function sendChatKeyboard(ctx: Context<Update>) {
 
 async function sendChoosePool(chatId: number, ctx: Context) {
     let poolList = await poolController.getPoolList(chatId);
-    let buttons = poolList.map(el => Markup.button.callback(el.command, JSON.stringify({poolId: el, type: QueryTypeEnum.CHOOSE_POOL})));
+    let buttons = poolList.map(el => Markup.button.callback(el.command, JSON.stringify({poolId: el._id, type: QueryTypeEnum.CHOOSE_POOL})));
 
     if(buttons.length === 0)
         return ctx.reply("Для этого чата нет созданных опросов. Отправьте /newpool, чтобы создать новый опрос.");
