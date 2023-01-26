@@ -7,8 +7,9 @@
     "sourceMap": true,
     "outDir": "dist",
     "allowSyntheticDefaultImports": true,
+    "experimentalDecorators": true,
     "moduleResolution": "node",
-    "resolveJsonModule": true,
+    "resolveJsonModule": true
   },
   "include": [
     "./**/*"

@@ -2,7 +2,6 @@
   "name": "gimme-bot",
   "version": "1.0.0",
   "description": "",
-  "main": "index.js",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
     "start": "node --es-module-specifier-resolution=node dist/main.js"
@@ -11,15 +10,21 @@
   "author": "",
   "license": "ISC",
   "dependencies": {
+    "@nestjs/common": "^9.2.1",
+    "@nestjs/core": "^9.2.1",
+    "@nestjs/platform-express": "^9.2.1",
     "dotenv": "^16.0.0",
     "mongoose": "^6.8.1",
+    "nestjs-telegraf": "^2.6.3",
     "pg": "^8.7.3",
+    "reflect-metadata": "^0.1.13",
     "telegraf": "^4.7.0"
   },
   "devDependencies": {
+    "@nestjs/cli": "^9.1.9",
     "@types/node": "latest",
     "@types/pg": "^8.6.5",
-    "typescript": "latest"
+    "typescript": "^4.9.4"
   },
   "type": "module"
 }
