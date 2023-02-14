@@ -1,15 +1,17 @@
 import {Types, Document} from "mongoose";
 import {ChatDocument} from "./chat";
 
-export interface PoolDocument extends Document {
+export interface PollDocument extends Poll, Document {}
+
+export interface Poll {
     _chat: ChatDocument | Types.ObjectId;
     command: string;
     question: string;
     answers: string[];
-    options: PoolOptions,
+    options: PollOptions,
 }
 
-export interface PoolOptions {
+export interface PollOptions {
     isAnonymous: boolean,
     allowsMultipleAnswers: boolean,
     pinPool: boolean,

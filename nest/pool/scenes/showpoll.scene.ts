@@ -19,6 +19,7 @@ export class ShowPollScene {
 
     @On('callback_query')
     async onChooseChat(@Ctx() context: SceneContextUpdate<CallbackWithData<Update.CallbackQueryUpdate>>){
+        console.log('showpoll scene', 'callback_query onChooseChat')
         const data = JSON.parse(context.update.callback_query.data);
 
         if(data.type === QueryTypeEnum.CHOOSE_CHAT) {

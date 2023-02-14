@@ -1,6 +1,6 @@
 import PoolController from "../../controllers/PoolController";
 import {PoolSchema} from "../../schema/PoolSchema";
-import {PoolDocument} from "../../models/types/pool";
+import {PollDocument} from "../../models/types/pool";
 
 export default class SendPoolTask {
 
@@ -20,7 +20,7 @@ export default class SendPoolTask {
         this.chatId = chatId;
     }
 
-    public getPool(poolId: string): Promise<PoolDocument | null> {
+    public getPool(poolId: string): Promise<PollDocument | null> {
         return this.poolController.getPool(poolId);
     }
 

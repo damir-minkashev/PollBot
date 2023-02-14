@@ -1,4 +1,4 @@
-import {Command, Ctx, InjectBot, On, Start, Update} from "nestjs-telegraf";
+import {Command, Ctx, InjectBot, Message, On, Start, Update} from "nestjs-telegraf";
 import {Context, Telegraf} from "telegraf";
 import {ChatService} from "./services/chat.service";
 import {Inject} from "@nestjs/common";
@@ -17,8 +17,14 @@ export class PollUpdate {
 
     // TODO переименовать команды
     @Command('showpools')
-    async onShowPoolCommand(@Ctx() ctx: SceneContext) {
+    async onShowPollCommand(@Ctx() ctx: SceneContext) {
         await ctx.scene.enter('showpolls');
+    }
+
+    // TODO переименовать команды
+    @Command('newpool')
+    async onNewPollCommand(@Ctx() ctx: SceneContext) {
+        await ctx.scene.enter('newpoll');
     }
 
     @On('my_chat_member')

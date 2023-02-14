@@ -1,5 +1,5 @@
 import {Injectable} from "@nestjs/common";
-import {PoolDocument, PoolOptions} from "../../../models/types/pool";
+import {PollDocument, PoolOptions} from "../../../models/types/pool";
 import Chat from "../../../models/Chat";
 import Pool from "../../../models/Pool";
 
@@ -38,7 +38,7 @@ export class PollService {
 
     }
 
-    public async getPoolList(chatId: number): Promise<PoolDocument[]>{
+    public async getPoolList(chatId: number): Promise<PollDocument[]>{
         // todo aggregation
         const chat = await Chat.findOne({ chatId });
 
@@ -48,7 +48,7 @@ export class PollService {
         return Pool.find({ _chat: chat._id}).lean();
     }
 
-    public async getPool(poolId: string): Promise<PoolDocument | null> {
+    public async getPool(poolId: string): Promise<PollDocument | null> {
         return Pool.findOne({_id: poolId}).lean();
     }
 }
