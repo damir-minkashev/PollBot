@@ -1,4 +1,4 @@
-import {Action, Command, Ctx, Hears, Message, On, Scene, SceneEnter, Sender} from "nestjs-telegraf";
+import {Action, Command, Ctx, Hears, Message, On, Scene, SceneEnter, Sender, Wizard, WizardStep} from "nestjs-telegraf";
 import {SceneContext} from "telegraf/typings/scenes";
 import {Inject} from "@nestjs/common";
 import {KeyboardService} from "../services/keyboard.service";
@@ -7,7 +7,7 @@ import {Update} from "telegraf/typings/core/types/typegram";
 import {QueryTypeEnum} from "../../../app/queries/QueryTypeEnum";
 import {NewPollState} from "../../../types/newpoll/enums";
 import {Poll} from "../../../models/types/pool";
-import {Markup} from "telegraf";
+import {Context, Markup, Scenes} from "telegraf";
 
 @Scene('newpoll')
 export class NewPollScene {
@@ -23,21 +23,27 @@ export class NewPollScene {
     @SceneEnter()
     async onSceneEnter(@Ctx() context: SceneContext,
                        @Sender('id') id: number) {
-        //return this.keyboardService.showChatKeyboard(context, id);
-        return 'hello';
+        return this.keyboardService.showChatKeyboard(context, id);
     }
 
-    // @On(['callback_query'])
-    // async onChooseChat(@Ctx() context: SceneContextUpdate<CallbackWithData<Update.CallbackQueryUpdate>>){
-    //     console.log('newpoll scene', 'callback_query onChooseChat')
-    //     const data = JSON.parse(context.update.callback_query.data);
-    //
-    //     if(data.type === QueryTypeEnum.CHOOSE_CHAT) {
-    //         await context.editMessageReplyMarkup({ reply_markup: { remove_keyboard: true } } as any);
-    //         this.state = NewPollState.SET_NAME;
-    //         return "Пришлите название опроса";
-    //     }
+    @Action(/showchats/)
+    async onChooseChat(@Ctx() context: SceneContextUpdate<CallbackWithData<Update.CallbackQueryUpdate>>){
+        console.log('newpoll scene', 'callback_query onChooseChat')
+        const { data } = context.update.callback_query;
+        const json = data.substring(data.indexOf(':') + 1);
+        const { chatId } = JSON.parse(json);
+        this.chatId = chatId;
+
+        await context.editMessageReplyMarkup({ reply_markup: { remove_keyboard: true } } as any);
+        this.state = NewPollState.SET_NAME;
+        return context.scene.enter('createpoll');
+    }
+
+    // @WizardStep(1)
+    // step1(@Ctx() ctx: Scenes.WizardContext) {
+    //     return 'step 1';
     // }
+
     //
     // @Command('/done')
     // async onDone(@Ctx() context: SceneContext) {
@@ -61,26 +67,26 @@ export class NewPollScene {
     //     }));
     // }
 
-    @Action(/.*/)
+
     async onAnswer(@Ctx() context: SceneContext) {
         console.log('newpoll scene', 'text onAnswer')
-        console.log(text);
-        switch (this.state) {
-            case NewPollState.SET_NAME:
-                this.pool.command = text;
-                this.state = NewPollState.SET_QUESTION;
-                return "Пришлите вопрос опроса";
-            case NewPollState.SET_QUESTION:
-                this.pool.question = text;
-                this.state = NewPollState.SET_ANSWER;
-                return "Пришлите как минимум два варианта ответа. Если вы хотите закончить, пришлите /done";
-            case NewPollState.SET_ANSWER:
-                this.pool.answers = this.pool.answers || [];
-                if(this.pool.answers.length >= 10) {
-                    return "Достигнуто максимальное количество ответов. Пришлите /done"
-                }
-                this.pool.answers.push(text);
-                return "Задайте варианты ответов. Если вы хотите закончить, пришлите /done";
-        }
+        console.log('11111');
+        // switch (this.state) {
+        //     case NewPollState.SET_NAME:
+        //         this.pool.command = text;
+        //         this.state = NewPollState.SET_QUESTION;
+        //         return "Пришлите вопрос опроса";
+        //     case NewPollState.SET_QUESTION:
+        //         this.pool.question = text;
+        //         this.state = NewPollState.SET_ANSWER;
+        //         return "Пришлите как минимум два варианта ответа. Если вы хотите закончить, пришлите /done";
+        //     case NewPollState.SET_ANSWER:
+        //         this.pool.answers = this.pool.answers || [];
+        //         if(this.pool.answers.length >= 10) {
+        //             return "Достигнуто максимальное количество ответов. Пришлите /done"
+        //         }
+        //         this.pool.answers.push(text);
+        //         return "Задайте варианты ответов. Если вы хотите закончить, пришлите /done";
+        // }
     }
 }

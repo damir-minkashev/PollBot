@@ -15,7 +15,7 @@ export class KeyboardService {
     async showChatKeyboard(@Ctx() context: SceneContext, id: number){
         const chatList = await this.chatService.getChatList(id);
         let buttons = chatList.map(el =>
-            Markup.button.callback(el.title, JSON.stringify({type: QueryTypeEnum.CHOOSE_CHAT})));
+            Markup.button.callback(el.title, `showchats:${JSON.stringify({chatId: el.chatId})}`));
 
         if(buttons.length === 0)
             return "Нет доступных чатов. Сначала добавьте бота в чат, в который вы хотите публиковать опросы. " +

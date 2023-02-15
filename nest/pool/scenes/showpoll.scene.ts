@@ -1,6 +1,5 @@
-import {Ctx, On, Scene, SceneEnter, Sender} from "nestjs-telegraf";
+import {Action, Ctx, Hears, On, Scene, SceneEnter, Sender} from "nestjs-telegraf";
 import {SceneContext} from "telegraf/typings/scenes";
-import {QueryTypeEnum} from "../../../app/queries/QueryTypeEnum";
 import {Inject} from "@nestjs/common";
 import {Update} from "telegraf/typings/core/types/typegram";
 import {CallbackWithData, SceneContextUpdate} from "../../../types/common";
@@ -17,13 +16,14 @@ export class ShowPollScene {
         return this.keyboardService.showChatKeyboard(context, id);
     }
 
-    @On('callback_query')
+    @Action(/showchats/)
     async onChooseChat(@Ctx() context: SceneContextUpdate<CallbackWithData<Update.CallbackQueryUpdate>>){
         console.log('showpoll scene', 'callback_query onChooseChat')
-        const data = JSON.parse(context.update.callback_query.data);
+        // TODO скрыть это в интерсепторах или сделать собственный декоратор, например @ChatId
+        const { data } = context.update.callback_query;
+        const json = data.substring(data.indexOf(':') + 1);
+        const { chatId } = JSON.parse(json);
 
-        if(data.type === QueryTypeEnum.CHOOSE_CHAT) {
-            return this.keyboardService.showPollKeyboard(context, data.chatId);
-        }
+        return this.keyboardService.showPollKeyboard(context, chatId);
     }
 }

@@ -8,7 +8,8 @@ import {Update as TUpdate} from 'telegraf/typings/core/types/typegram';
 @Update()
 export class PollUpdate {
     constructor(@InjectBot() private readonly bot: Telegraf<Context>,
-                @Inject(ChatService) private readonly chatService: ChatService) {}
+                @Inject(ChatService) private readonly chatService: ChatService) {
+    }
 
     @Start()
     async onStart(): Promise<string> {
@@ -27,22 +28,22 @@ export class PollUpdate {
         await ctx.scene.enter('newpoll');
     }
 
-    @On('my_chat_member')
-    onAddBotToChat(ctx: Context<TUpdate.MyChatMemberUpdate>) {
-        const data = ctx.update.my_chat_member;
-
-        if(data.chat.type === "private")
-            return;
-
-        if(data.new_chat_member.status === "member") {
-            return this.chatService.createChat(data.chat.id, data.chat.title, data.from.id)
-        }
-
-        // Тут момент, если удалить чат, то надо удалять опросы, чтобы бд не засорялась.
-        // Но в чат бота можно вернуть.
-        // TODO
-        if(data.new_chat_member.status === "left") {
-            return this.chatService.removeChat(data.chat.id)
-        }
-    }
+    // @On('my_chat_member')
+    // onAddBotToChat(ctx: Context<TUpdate.MyChatMemberUpdate>) {
+    //     const data = ctx.update.my_chat_member;
+    //
+    //     if(data.chat.type === "private")
+    //         return;
+    //
+    //     if(data.new_chat_member.status === "member") {
+    //         return this.chatService.createChat(data.chat.id, data.chat.title, data.from.id)
+    //     }
+    //
+    //     // Тут момент, если удалить чат, то надо удалять опросы, чтобы бд не засорялась.
+    //     // Но в чат бота можно вернуть.
+    //     // TODO
+    //     if(data.new_chat_member.status === "left") {
+    //         return this.chatService.removeChat(data.chat.id)
+    //     }
+    // }
 }
