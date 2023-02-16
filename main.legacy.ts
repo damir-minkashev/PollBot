@@ -15,7 +15,7 @@
 // import {PoolOptionsSchema} from "./schema/PoolOptionsSchema";
 // import connection from "./mongo";
 // import config from "./config.json" assert { type: 'json' };
-// import {PoolDocument} from "./models/types/pool";
+// import { PollDocument } from "./models/types/pool";
 // import Pool from "./models/Pool";
 // import {ChatDocument} from "./models/types/chat";
 //
@@ -344,7 +344,7 @@
 //     return ctx.reply("Сохранить опрос?", buttons);
 // }
 //
-// async function sendPoolToChat(ctx: Context, pool: PoolDocument) {
+// async function sendPoolToChat(ctx: Context, pool: PollDocument) {
 //     await Pool.populate(pool, '_chat');
 //     const chat = pool._chat as ChatDocument;
 //

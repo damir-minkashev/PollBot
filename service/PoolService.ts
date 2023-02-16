@@ -1,6 +1,6 @@
 import Pool from "../models/Pool";
 import Chat from "../models/Chat";
-import {PollDocument, PoolOptions} from "../models/types/pool";
+import {PollDocument, PollOptions} from "../models/types/pool";
 
 export default class PoolService {
 
@@ -12,7 +12,7 @@ export default class PoolService {
      * @param answers
      * @param options
      */
-    public async createPool(chatId: number, command: string, question: string, answers: string[], options: PoolOptions) {
+    public async createPool(chatId: number, command: string, question: string, answers: string[], options: PollOptions) {
         const chat = await Chat.findOne({ chatId }).lean();
 
         if(!chat)

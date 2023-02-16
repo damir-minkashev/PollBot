@@ -1,31 +1,24 @@
 import {Injectable} from "@nestjs/common";
-import {PollDocument, PoolOptions} from "../../../models/types/pool";
+import {PollDocument} from "../../../models/types/pool";
 import Chat from "../../../models/Chat";
 import Pool from "../../../models/Pool";
+import {PollEntity} from "../../../types/common";
 
 @Injectable()
 export class PollService {
 
-    /**
-     *
-     * @param chatId
-     * @param command
-     * @param question
-     * @param answers
-     * @param options
-     */
-    public async createPool(chatId: number, command: string, question: string, answers: string[], options: PoolOptions) {
-        const chat = await Chat.findOne({ chatId }).lean();
+    public async createPool(poll: PollEntity) {
+        const chat = await Chat.findOne({ chatId: poll.chatId }).lean();
 
         if(!chat)
             return;
 
         const pool = new Pool({
             _chat: chat._id,
-            command,
-            question,
-            answers,
-            options,
+            command: poll.command,
+            question: poll.question,
+            answers: poll.answers,
+            options: poll.options,
         });
 
         await pool.save();
