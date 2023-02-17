@@ -3,12 +3,9 @@ import {TelegrafModule} from "nestjs-telegraf";
 import {PollModule} from "./pool/poll.module";
 import {DatabaseModule} from "./database/database.module";
 import {session} from "telegraf";
-import {CreatePollWizard} from "./pool/scenes/newpoll/createpoll.wizard";
-import {KeyboardService} from "./pool/services/keyboard.service";
-import {ChatService} from "./pool/services/chat.service";
-import {PollService} from "./pool/services/poll.service";
-import {NewPollScene} from "./pool/scenes/newpoll/newpoll.scene";
-import {PollUpdate} from "./pool/poll.update";
+import {checkBotMessage} from "../middlewares/checkBotMessage";
+
+
 
 @Module({
     imports: [
@@ -16,8 +13,8 @@ import {PollUpdate} from "./pool/poll.update";
         DatabaseModule,
         TelegrafModule.forRootAsync({
             useFactory: () => ({
-                token: '5374201626:AAEzDLQE3elDKyNUz4oP0cEdagORxdu_8kA',
-                middlewares: [session()],
+                token: process.env.BOT_TOKEN as string,
+                middlewares: [session(), checkBotMessage],
                 include: [BotModule],
             }),
         }),

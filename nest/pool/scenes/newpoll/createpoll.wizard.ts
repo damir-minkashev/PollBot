@@ -1,4 +1,4 @@
-import {Action, Ctx, InjectBot, Message, On, Wizard, WizardStep} from "nestjs-telegraf";
+import {Action, Ctx, Message, On, Wizard, WizardStep} from "nestjs-telegraf";
 import {WizardContext} from "telegraf/typings/scenes";
 import {Inject} from "@nestjs/common";
 import {KeyboardService} from "../../services/keyboard.service";
@@ -15,9 +15,9 @@ export class CreatePollWizard {
                 @Inject(KeyboardService) private readonly keyboardService: KeyboardService) {}
 
     @WizardStep(1)
-    async onEnter(@Ctx() ctx: any) {
+    async onEnter(@Ctx() ctx: WizardContext & { wizard: { state: { chatId: number }}}) {
         this.poll.chatId = ctx.wizard.state.chatId;
-        ctx.reply("Пришлите название опроса. Оно должно быть уникальным, чтобы вам было легче ориентироваться");
+        await ctx.reply("Пришлите название опроса. Оно должно быть уникальным, чтобы вам было легче ориентироваться");
         await ctx.wizard.next();
     }
 
@@ -108,7 +108,7 @@ export class CreatePollWizard {
         switch (result) {
             case 'save':
                 this.assertPoll(this.poll);
-                await this.pollService.createPool(this.poll);
+                await this.pollService.createPoll(this.poll);
                 return "Опрос сохранен."
             case 'cancel':
                 return "Изменения отменены. Пришлите /newpoll"

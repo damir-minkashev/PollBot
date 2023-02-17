@@ -1,4 +1,4 @@
-import {Command, Ctx, InjectBot, Message, On, Start, Update} from "nestjs-telegraf";
+import {Command, Ctx, InjectBot, On, Start, Update} from "nestjs-telegraf";
 import {Context, Telegraf} from "telegraf";
 import {ChatService} from "./services/chat.service";
 import {Inject} from "@nestjs/common";
@@ -28,6 +28,10 @@ export class PollUpdate {
                 type: "default",
             }
         });
+
+        this.bot.telegram.setMyCommands([], {
+            scope: {type:"all_group_chats"}
+        })
     }
 
     @Start()
@@ -42,9 +46,17 @@ export class PollUpdate {
 
     @Command('newpoll')
     async onNewPollCommand(@Ctx() ctx: SceneContext) {
-        console.log(ctx.scene.current?.leave );
-        // await ctx.scene.current?.leave();
         await ctx.scene.enter('newpoll');
+    }
+
+    @Command('delpoll')
+    async onDelPollCommand(@Ctx() ctx: SceneContext) {
+        await ctx.scene.enter('delpoll');
+    }
+
+    @Command('sendpoll')
+    async onSendPollCommand(@Ctx() ctx: SceneContext) {
+        await ctx.scene.enter('sendpoll');
     }
 
     @On('my_chat_member')
@@ -58,9 +70,6 @@ export class PollUpdate {
             return this.chatService.createChat(data.chat.id, data.chat.title, data.from.id)
         }
 
-        // Тут момент, если удалить чат, то надо удалять опросы, чтобы бд не засорялась.
-        // Но в чат бота можно вернуть.
-        // TODO
         if(data.new_chat_member.status === "left") {
             return this.chatService.removeChat(data.chat.id)
         }

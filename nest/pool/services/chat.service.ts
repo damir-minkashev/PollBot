@@ -1,15 +1,15 @@
 import {Injectable} from "@nestjs/common";
 import Chat from "../../../models/Chat";
-import {ChatDocument} from "../../../models/types/chat";
 import {InjectBot} from "nestjs-telegraf";
 import {Context, Telegraf} from "telegraf";
+import Poll from "../../../models/Poll";
 
 @Injectable()
 export class ChatService {
     constructor(@InjectBot() private readonly bot: Telegraf<Context>) {}
 
     async getChatList(userId: number) {
-        return this.getValidChatForUser((await Chat.find().lean()), userId);
+        return Chat.find({ userId }).lean();
     }
 
     async createChat(id: number, title: string, userId: number) {
@@ -26,31 +26,33 @@ export class ChatService {
     }
 
     async removeChat(id: number) {
-        // TODO удалять опросы
-        await Chat.deleteOne({chatId: id});
-    }
+        const chat = await Chat.findOneAndDelete({chatId: id});
 
-    // TODO сделать через Interceptor
-    private async getValidChatForUser(chatList: ChatDocument[], userId: number) {
-        let result = [];
-        for(let chat of chatList) {
-            let member = await this.checkAccess(chat.chatId, userId);
-            if(!member)
-                continue;
-
-            result.push(chat);
+        if(chat) {
+            await Poll.deleteMany({_chat: chat._id })
         }
-
-        return result;
     }
 
-    private async checkAccess(chatId: number, userId: number) {
-        let info = await this.bot.telegram.getChatAdministrators(chatId).catch(() =>{});
-        if(!info)
-            return ;
+    // Этот код пока оставим, пока не разберемся как сделать миграцию
+    // private async getValidChatForUser(chatList: ChatDocument[], userId: number) {
+    //     let result = [];
+    //     for(let chat of chatList) {
+    //         let member = await this.checkAccess(chat.chatId, userId);
+    //         if(!member)
+    //             continue;
+    //
+    //         result.push(chat);
+    //     }
+    //
+    //     return result;
+    // }
 
-        return info.find((el) => {
-            return el.user.id === userId;
-        })
-    }
+    // // TODO code repeats
+    // private async checkAccess(chatId: number, userId: number) {
+    //     let info = await this.bot.telegram.getChatAdministrators(chatId).catch(() =>{});
+    //     if(!info)
+    //         return ;
+    //
+    //     return info.find((el) => el.user.id === userId;)
+    // }
 }

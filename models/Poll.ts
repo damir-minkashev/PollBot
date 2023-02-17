@@ -1,7 +1,7 @@
 import mongoose, {Schema, Types} from "mongoose";
 import {PollDocument} from "./types/pool";
 
-const PoolSchema = new Schema<PollDocument>({
+const PollSchema = new Schema<PollDocument>({
     _chat: {
         type: Types.ObjectId,
         ref: 'Chat',
@@ -36,4 +36,4 @@ const PoolSchema = new Schema<PollDocument>({
     }
 })
 
-export default mongoose.model('Pool', PoolSchema);
+export default mongoose.model('Poll', PollSchema);

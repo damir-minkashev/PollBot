@@ -30,12 +30,12 @@ export class KeyboardService {
     }
 
     async showPollKeyboard(@Ctx() context: SceneContext, chatId: number){
-        const polls = await this.pollService.getPoolList(chatId);
+        const polls = await this.pollService.getPollList(chatId);
         let buttons = polls.map(el =>
             Markup.button.callback(el.command, `showpoll:${JSON.stringify({id: el._id})}`));
 
         if(buttons.length === 0)
-            return "Для этого чата нет созданных опросов. Отправьте /newpool, чтобы создать новый опрос.";
+            return "Для этого чата нет созданных опросов. Отправьте /newpoll, чтобы создать новый опрос.";
 
 
         await context.reply(

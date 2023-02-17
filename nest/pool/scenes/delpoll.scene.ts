@@ -1,20 +1,22 @@
 import {Action, Ctx, Scene, SceneEnter, Sender} from "nestjs-telegraf";
 import {SceneContext} from "telegraf/typings/scenes";
-import {Inject} from "@nestjs/common";
-import {Update} from "telegraf/typings/core/types/typegram";
 import {CallbackWithData, SceneContextUpdate} from "../../../types/common";
+import {Update} from "telegraf/typings/core/types/typegram";
+import {Inject} from "@nestjs/common";
 import {KeyboardService} from "../services/keyboard.service";
 import {PollService} from "../services/poll.service";
 
-@Scene('showpolls')
-export class ShowPollScene {
+@Scene('delpoll')
+export class DelPollScene {
+
+    private chatId: number | undefined;
+
     constructor(@Inject(KeyboardService) private readonly keyboardService: KeyboardService,
                 @Inject(PollService) private readonly pollService: PollService) {}
 
-
     @SceneEnter()
-    async onSceneEnter(@Ctx() context: SceneContext,
-                       @Sender('id') id: number) {
+    onEnter(@Ctx() context: SceneContext,
+            @Sender('id') id: number) {
         return this.keyboardService.showChatKeyboard(context, id);
     }
 
@@ -24,6 +26,7 @@ export class ShowPollScene {
         const { data } = context.update.callback_query;
         const json = data.substring(data.indexOf(':') + 1);
         const { chatId } = JSON.parse(json);
+        this.chatId = chatId;
 
         await this.keyboardService.hideKeyboard(context);
         return this.keyboardService.showPollKeyboard(context, chatId);
@@ -31,25 +34,13 @@ export class ShowPollScene {
 
     @Action(/showpoll/)
     async onChoosePoll(@Ctx() context: SceneContextUpdate<CallbackWithData<Update.CallbackQueryUpdate>>) {
-        await this.keyboardService.hideKeyboard(context);
-
         const { data } = context.update.callback_query;
         const json = data.substring(data.indexOf(':') + 1);
         const { id } = JSON.parse(json);
 
-        const poll = await this.pollService.getPoll(id);
-
-        if(!poll){
-            return "Опрос не найден."
-        }
-
-        await context.replyWithPoll(poll.question, poll.answers, {
-            is_anonymous: poll.options.isAnonymous,
-            allows_multiple_answers: poll.options.allowsMultipleAnswers,
-        });
-
+        await this.pollService.deletePoll(id);
         await context.scene.leave();
+        return 'Опрос удален'
     }
-
 
 }
