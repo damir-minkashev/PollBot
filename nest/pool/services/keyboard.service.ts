@@ -32,42 +32,30 @@ export class KeyboardService {
     async showPollKeyboard(@Ctx() context: SceneContext, chatId: number){
         const polls = await this.pollService.getPollList(chatId);
         let buttons = polls.map(el =>
-            Markup.button.callback(el.command, `showpoll:${JSON.stringify({id: el._id})}`));
+            Markup.button.callback(el.question, `showpoll:${JSON.stringify({id: el._id})}`));
 
         if(buttons.length === 0)
             return "Для этого чата нет созданных опросов. Отправьте /newpoll, чтобы создать новый опрос.";
 
 
         await context.reply(
-            'Выберите чат',
+            'Выберите опрос',
             Markup.inlineKeyboard(buttons, {
-                columns: 4
+                columns: 2
             })
         );
     }
 
     async showPollSettingsKeyboard(@Ctx() context: Context) {
         // TODO Enum
-        await context.reply("Выберите настройки", Markup.inlineKeyboard([
+        await context.reply("Выберите дополнительные настройки", Markup.inlineKeyboard([
                 Markup.button.callback("📌 Закрепить", `polloption:pinPool`),
-                Markup.button.callback("🥷🏻 Анонимно", 'polloption:isAnonymous'),
-                Markup.button.callback("☑ Несколько ответов", 'polloption:allowsMultipleAnswers'),
                 Markup.button.callback("🗓 Доп. текст опроса", 'polloption:addTimeToTitle'),
-                Markup.button.callback("Показать", 'polloption:show'),
+                Markup.button.callback("Сохранить", 'polloption:save'),
+                Markup.button.callback("Отмена", 'polloption:cancel'),
             ], {
                 columns:2
             }));
-    }
-
-    async showSaveKeyboard(@Ctx() context: Context) {
-        let buttons = Markup.inlineKeyboard([
-            Markup.button.callback("Сохранить", 'pollsave:save'),
-            Markup.button.callback("Отмена", 'pollsave:cancel'),
-        ], {
-            columns: 3
-        });
-
-        await context.reply("Сохранить опрос?", buttons);
     }
 
     async hideKeyboard(@Ctx() context: Context) {

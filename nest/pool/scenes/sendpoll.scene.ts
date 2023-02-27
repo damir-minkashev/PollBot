@@ -95,7 +95,7 @@ export class SendPollScene{
             if(botIsAdmin) {
                 await this.bot.telegram.pinChatMessage(chatId, msg.message_id);
             } else {
-                await ctx.reply("Неудалось закрепить сообщение. Выдайте боту права администратора.");
+                await ctx.reply("❗Неудалось закрепить сообщение. Выдайте боту права администратора.");
             }
         }
 

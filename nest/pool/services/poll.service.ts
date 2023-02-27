@@ -29,13 +29,21 @@ export class PollService {
     }
 
     public async getPollList(chatId: number): Promise<PollDocument[]>{
-        // todo aggregation
         const chat = await Chat.findOne({ chatId }).lean();
 
         if(!chat)
             return [];
 
         return Poll.find({ _chat: chat._id}).lean();
+    }
+
+    public async countPoll(chatId: number): Promise<number> {
+        const chat = await Chat.findOne({ chatId }).lean();
+
+        if(!chat)
+            return 0;
+
+        return Poll.countDocuments({ _chat: chat._id});
     }
 
     public async getPoll(poolId: string): Promise<PollDocument | null> {

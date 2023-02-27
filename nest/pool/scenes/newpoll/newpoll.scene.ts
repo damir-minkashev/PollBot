@@ -4,11 +4,15 @@ import {Inject} from "@nestjs/common";
 import {KeyboardService} from "../../services/keyboard.service";
 import {CallbackWithData, SceneContextUpdate} from "../../../../types/common";
 import {Update} from "telegraf/typings/core/types/typegram";
+import {PollService} from "../../services/poll.service";
+
+const MAX_COUNT_POLLS: number = 25;
 
 @Scene('newpoll')
 export class NewPollScene {
 
-    constructor(@Inject(KeyboardService) private readonly keyboardService: KeyboardService) {}
+    constructor(@Inject(KeyboardService) private readonly keyboardService: KeyboardService,
+                @Inject(PollService) private readonly pollService: PollService) {}
 
     @SceneEnter()
     async onSceneEnter(@Ctx() context: SceneContext,
@@ -24,7 +28,22 @@ export class NewPollScene {
         const { chatId } = JSON.parse(json);
         await this.keyboardService.hideKeyboard(context);
 
+        try {
+            await this.assertIsMaxCountPolls(chatId);
+        } catch {
+            await context.reply('Достигнуто максимальное количество опросов.')
+            return context.scene.leave();
+        }
+
         await context.scene.leave();
         return context.scene.enter('createpoll', { chatId });
+    }
+
+    private async assertIsMaxCountPolls(chatId: number) {
+        const countPolls = await this.pollService.countPoll(chatId);
+
+        if(countPolls >= MAX_COUNT_POLLS) {
+            throw new Error('Max poll reached');
+        }
     }
 }
