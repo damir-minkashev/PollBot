@@ -1,5 +1,5 @@
 import mongoose, {Schema, Types} from "mongoose";
-import {PollDocument} from "./types/pool";
+import {PollDocument} from "./types/poll";
 
 const PollSchema = new Schema<PollDocument>({
     _chat: {

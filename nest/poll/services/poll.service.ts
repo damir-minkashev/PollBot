@@ -1,5 +1,5 @@
 import {Injectable} from "@nestjs/common";
-import {PollDocument} from "../../../models/types/pool";
+import {PollDocument} from "../../../models/types/poll";
 import Chat from "../../../models/Chat";
 import Poll from "../../../models/Poll";
 import {PollEntity} from "../../../types/common";
@@ -13,7 +13,7 @@ export class PollService {
         if(!chat)
             return;
 
-        const pool = new Poll({
+        const doc = new Poll({
             _chat: chat._id,
             command: poll.command,
             question: poll.question,
@@ -21,11 +21,11 @@ export class PollService {
             options: poll.options,
         });
 
-        await pool.save();
+        await doc.save();
     }
 
-    public async deletePoll(poolId: string): Promise<void> {
-        await Poll.deleteOne({_id: poolId});
+    public async deletePoll(pollId: string): Promise<void> {
+        await Poll.deleteOne({_id: pollId});
     }
 
     public async getPollList(chatId: number): Promise<PollDocument[]>{
@@ -46,7 +46,7 @@ export class PollService {
         return Poll.countDocuments({ _chat: chat._id});
     }
 
-    public async getPoll(poolId: string): Promise<PollDocument | null> {
-        return Poll.findOne({_id: poolId}).lean();
+    public async getPoll(pollId: string): Promise<PollDocument | null> {
+        return Poll.findOne({_id: pollId}).lean();
     }
 }

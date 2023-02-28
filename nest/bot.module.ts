@@ -1,6 +1,6 @@
 import {Module} from "@nestjs/common";
 import {TelegrafModule} from "nestjs-telegraf";
-import {PollModule} from "./pool/poll.module";
+import {PollModule} from "./poll/poll.module";
 import {DatabaseModule} from "./database/database.module";
 import {session} from "telegraf";
 import {checkBotMessage} from "../middlewares/checkBotMessage";

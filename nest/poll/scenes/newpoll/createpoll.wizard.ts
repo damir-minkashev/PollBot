@@ -6,7 +6,7 @@ import {CallbackWithData, PollEntity, SceneContextUpdate} from "../../../../type
 import {Update as TUpdate, Update} from "telegraf/typings/core/types/typegram";
 import {PollService} from "../../services/poll.service";
 import {Context} from "telegraf";
-import {PollOptions} from "../../../../models/types/pool";
+import {PollOptions} from "../../../../models/types/poll";
 
 @Wizard('createpoll')
 export class CreatePollWizard {
@@ -89,7 +89,7 @@ export class CreatePollWizard {
         await context.scene.leave();
     }
 
-    private assertPoll(pool: Partial<PollEntity>): asserts pool is PollEntity {
+    private assertPoll(poll: Partial<PollEntity>): asserts poll is PollEntity {
         if(!this.poll.command || !this.poll.question || !this.poll.answers || !this.poll.chatId || !this.poll.options) {
             throw -1;
         }

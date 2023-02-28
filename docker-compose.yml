@@ -2,34 +2,25 @@ version: '3.0'
 
 services:
   main:
-    container_name: gimme-bot_main
+    container_name: poll-bot
     build:
       context: .
     volumes:
       - .:/app
       - /app/node_modules
     ports:
-      - 5000:5000
+      - 5001:5001
     command: npm run start
-    depends_on:
-      - postgres
-    restart: always
-  postgres:
-    container_name: gimme-bot_postgres
-    image: postgres:14
     environment:
-      PG_DATA: /var/lib/postgresql/data
-      POSTGRES_USER: postgres
-      POSTGRES_PASSWORD: postgres
-      POSTGRES_DB: gimme
-    ports:
-      - 5432:5432
-    volumes:
-      # - pgdata:/var/lib/postgresql/data
-      # copy the sql script to create tables
-      - ./sql/docker_postgres_init.sql:/docker-entrypoint-initdb.d/docker_postgres_init.sql
-      # copy the sql script to fill tables
-      # - ./sql/docker_postgres_init.sql:/docker-entrypoint-initdb.d/docker_postgres_init.sql
+      MONGO_URI: "mongodb://mongodb:27017/pollbot"
+    depends_on:
+      - mongodb
     restart: always
+  mongodb:
+    image: mongo:5.0.2
+    ports:
+      - 27017:27017
+    volumes:
+      - mongodb:/data/db
 volumes:
-  pgdata:
+  mongodb:

@@ -6,7 +6,7 @@ import {PollService} from "../services/poll.service";
 import {CallbackWithData, SceneContextUpdate} from "../../../types/common";
 import {Update} from "telegraf/typings/core/types/typegram";
 import {Context, Telegraf} from "telegraf";
-import {PollDocument} from "../../../models/types/pool";
+import {PollDocument} from "../../../models/types/poll";
 
 @Wizard('sendpoll')
 export class SendPollScene{
