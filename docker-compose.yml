@@ -3,6 +3,7 @@ version: '3.0'
 services:
   main:
     container_name: poll-bot
+    platform: linux/amd64
     build:
       context: .
     volumes:
