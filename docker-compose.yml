@@ -12,15 +12,14 @@ services:
     ports:
       - 5001:5001
     command: npm run start
-    environment:
-      MONGO_URI: "mongodb://mongodb:27017/pollbot"
     depends_on:
       - mongodb
     restart: always
   mongodb:
     image: mongo:5.0.2
+    # command: [--auth]
     ports:
-      - 27017:27017
+      - "127.0.0.1:27017:27017"
     volumes:
       - mongodb:/data/db
 volumes:
