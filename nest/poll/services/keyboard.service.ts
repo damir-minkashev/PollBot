@@ -31,17 +31,17 @@ export class KeyboardService {
 
     async showPollKeyboard(@Ctx() context: SceneContext, chatId: number){
         const polls = await this.pollService.getPollList(chatId);
+
         let buttons = polls.map(el =>
-            Markup.button.callback(el.question, `showpoll:${JSON.stringify({id: el._id})}`));
+            Markup.button.callback(el.command, `showpoll:${JSON.stringify({id: el._id})}`));
 
         if(buttons.length === 0)
             return "Для этого чата нет созданных опросов. Отправьте /newpoll, чтобы создать новый опрос.";
 
-
         await context.reply(
             'Выберите опрос',
             Markup.inlineKeyboard(buttons, {
-                columns: 2
+                columns: 3
             })
         );
     }
