@@ -1,9 +1,9 @@
 import {Command, Ctx, InjectBot, On, Start, Update} from "nestjs-telegraf";
 import {Context, Telegraf} from "telegraf";
-import {ChatService} from "./services/chat.service";
 import {Inject} from "@nestjs/common";
 import {SceneContext} from "telegraf/typings/scenes";
 import {Update as TUpdate} from 'telegraf/typings/core/types/typegram';
+import {ChatService} from "../../services/chat.service";
 
 @Update()
 export class PollUpdate {

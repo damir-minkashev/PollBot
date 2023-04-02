@@ -1,7 +1,4 @@
 import { Document } from 'mongoose';
+import {ChatData} from "../../types/data/ChatData";
 
-export interface ChatDocument extends Document{
-    chatId: number;
-    title: string
-    userId: string;
-}
+export interface ChatDocument extends ChatData, Document {}

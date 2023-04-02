@@ -1,8 +1,9 @@
 import {SceneContext} from "telegraf/typings/scenes";
-import {Poll} from "../models/types/poll";
+import {PollData} from "./data/PollData";
+
 
 export type SceneContextUpdate<T> = SceneContext & { update: { callback_query: T } }
 
 export type CallbackWithData<T> = T & { data: string };
 
-export type PollEntity = Omit<Poll, '_chat'> & { chatId: number};
+export type PollEntity = Omit<PollData<unknown>, '_chat'> & { chatId: number};

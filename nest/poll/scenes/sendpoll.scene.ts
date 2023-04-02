@@ -2,11 +2,12 @@ import {Action, Ctx, InjectBot, Message, On, Sender, Wizard, WizardStep} from "n
 import {SceneContext, WizardContext} from "telegraf/typings/scenes";
 import {Inject} from "@nestjs/common";
 import {KeyboardService} from "../services/keyboard.service";
-import {PollService} from "../services/poll.service";
 import {CallbackWithData, SceneContextUpdate} from "../../../types/common";
 import {Update} from "telegraf/typings/core/types/typegram";
 import {Context, Telegraf} from "telegraf";
 import {PollDocument} from "../../../models/types/poll";
+import {IPollService} from "../../../types/services/IPollService";
+import {PollService} from "../../../services/poll.service";
 
 @Wizard('sendpoll')
 export class SendPollScene{
@@ -17,7 +18,7 @@ export class SendPollScene{
 
     constructor(@InjectBot() private readonly bot: Telegraf<Context>,
                 @Inject(KeyboardService) private readonly keyboardService: KeyboardService,
-                @Inject(PollService) private readonly pollService: PollService) {}
+                @Inject(PollService) private readonly pollService: IPollService<PollDocument>) {}
 
     @WizardStep(1)
     async onEnter(@Ctx() context: WizardContext,

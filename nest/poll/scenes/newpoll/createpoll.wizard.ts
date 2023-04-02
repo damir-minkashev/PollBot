@@ -2,20 +2,22 @@ import {Action, Ctx, Message, On, Wizard, WizardStep} from "nestjs-telegraf";
 import {WizardContext} from "telegraf/typings/scenes";
 import {Inject} from "@nestjs/common";
 import {KeyboardService} from "../../services/keyboard.service";
-import {CallbackWithData, PollEntity, SceneContextUpdate} from "../../../../types/common";
 import {Update as TUpdate, Update} from "telegraf/typings/core/types/typegram";
-import {PollService} from "../../services/poll.service";
 import {Context} from "telegraf";
-import {PollOptions} from "../../../../models/types/poll";
+import { PollOptions } from "../../../../types/data/PollData";
+import {CallbackWithData, PollEntity, SceneContextUpdate } from "../../../../types/common";
+import {IPollService} from "../../../../types/services/IPollService";
+import {PollDocument} from "../../../../models/types/poll";
+import {PollService} from "../../../../services/poll.service";
 
 @Wizard('createpoll')
 export class CreatePollWizard {
 
-    private poll: Partial<PollEntity> & { options: PollOptions} = {
+    private poll: Partial<PollEntity> & { options: PollOptions } = {
         options: this.setDefaultOptions(),
     };
 
-    constructor(@Inject(PollService) private readonly pollService: PollService,
+    constructor(@Inject(PollService) private readonly pollService: IPollService<PollDocument>,
                 @Inject(KeyboardService) private readonly keyboardService: KeyboardService) {}
 
     @WizardStep(1)

@@ -1,31 +1,39 @@
 import {Injectable} from "@nestjs/common";
-import Chat from "../../../models/Chat";
 import {InjectBot} from "nestjs-telegraf";
 import {Context, Telegraf} from "telegraf";
-import Poll from "../../../models/Poll";
+import IChatService from "../types/services/IChatService";
+import {ChatDocument} from "../models/types/chat";
+import Chat from "../models/Chat";
+import Poll from "../models/Poll";
+
 
 @Injectable()
-export class ChatService {
+export class ChatService implements IChatService<ChatDocument> {
+
     constructor(@InjectBot() private readonly bot: Telegraf<Context>) {}
 
-    async getChatList(userId: number) {
+    async getChatList(userId: number): Promise<ChatDocument[]> {
         return Chat.find({ userId }).lean();
     }
 
-    async createChat(id: number, title: string, userId: number) {
+    public async getChat(id: number): Promise<ChatDocument | null> {
+        return Chat.findOne({ chatId: id }).lean()
+    }
+
+    async createChat(id: number, title: string, userId: number): Promise<ChatDocument> {
         let chat = await Chat.findOne({ chatId: id }).lean();
 
         if(chat)
-            return;
+            throw new Error("Internal error");
 
-        await Chat.create({
+        return Chat.create({
             title,
             chatId: id,
             userId
         })
     }
 
-    async removeChat(id: number) {
+    async removeChat(id: number): Promise<void> {
         const chat = await Chat.findOneAndDelete({chatId: id});
 
         if(chat) {

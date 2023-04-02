@@ -4,7 +4,9 @@ import {Inject} from "@nestjs/common";
 import {KeyboardService} from "../../services/keyboard.service";
 import {CallbackWithData, SceneContextUpdate} from "../../../../types/common";
 import {Update} from "telegraf/typings/core/types/typegram";
-import {PollService} from "../../services/poll.service";
+import {IPollService} from "../../../../types/services/IPollService";
+import {PollDocument} from "../../../../models/types/poll";
+import {PollService} from "../../../../services/poll.service";
 
 const MAX_COUNT_POLLS: number = 25;
 
@@ -12,7 +14,7 @@ const MAX_COUNT_POLLS: number = 25;
 export class NewPollScene {
 
     constructor(@Inject(KeyboardService) private readonly keyboardService: KeyboardService,
-                @Inject(PollService) private readonly pollService: PollService) {}
+                @Inject(PollService) private readonly pollService: IPollService<PollDocument>) {}
 
     @SceneEnter()
     async onSceneEnter(@Ctx() context: SceneContext,

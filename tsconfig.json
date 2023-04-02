@@ -10,6 +10,11 @@
     "experimentalDecorators": true,
     "moduleResolution": "node",
     "resolveJsonModule": true,
+//    "paths": {
+//      "app:models/*": ["./models/*"],
+//      "app:types/*": ["./types/*"],
+//      "app:services/*": ["./services/*"],
+//    }
   },
   "include": [
     "./**/*"

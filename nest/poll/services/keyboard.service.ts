@@ -1,16 +1,20 @@
 import {Inject, Injectable} from "@nestjs/common";
 import {Context, Markup, Telegraf} from "telegraf";
-import {ChatService} from "./chat.service";
-import {PollService} from "./poll.service";
 import {Ctx, InjectBot} from "nestjs-telegraf";
 import {SceneContext} from "telegraf/typings/scenes";
+import IChatService from "../../../types/services/IChatService";
+import {IPollService} from "../../../types/services/IPollService";
+import {ChatDocument} from "../../../models/types/chat";
+import {PollDocument} from "../../../models/types/poll";
+import {ChatService} from "../../../services/chat.service";
+import {PollService} from "../../../services/poll.service";
 
 @Injectable()
 export class KeyboardService {
 
     constructor(@InjectBot() private readonly bot: Telegraf<Context>,
-                @Inject(ChatService) private readonly chatService: ChatService,
-                @Inject(PollService) private readonly pollService: PollService) {}
+                @Inject(ChatService) private readonly chatService: IChatService<ChatDocument>,
+                @Inject(PollService) private readonly pollService: IPollService<PollDocument>) {}
 
     async showChatKeyboard(@Ctx() context: Context, id: number){
         const chatList = await this.chatService.getChatList(id);

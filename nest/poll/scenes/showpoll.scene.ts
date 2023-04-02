@@ -4,12 +4,14 @@ import {Inject} from "@nestjs/common";
 import {Update} from "telegraf/typings/core/types/typegram";
 import {CallbackWithData, SceneContextUpdate} from "../../../types/common";
 import {KeyboardService} from "../services/keyboard.service";
-import {PollService} from "../services/poll.service";
+import {PollService} from "../../../services/poll.service";
+import {IPollService} from "../../../types/services/IPollService";
+import {PollDocument} from "../../../models/types/poll";
 
 @Scene('showpolls')
 export class ShowPollScene {
     constructor(@Inject(KeyboardService) private readonly keyboardService: KeyboardService,
-                @Inject(PollService) private readonly pollService: PollService) {}
+                @Inject(PollService) private readonly pollService: IPollService<PollDocument>) {}
 
 
     @SceneEnter()
