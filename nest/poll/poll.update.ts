@@ -67,11 +67,11 @@ export class PollUpdate {
             return;
 
         if(data.new_chat_member.status === "member") {
-            return this.chatService.createChat(data.chat.id, data.chat.title, data.from.id)
+            this.chatService.createChat(data.chat.id, data.chat.title, data.from.id)
         }
 
         if(data.new_chat_member.status === "left") {
-            return this.chatService.removeChat(data.chat.id)
+            this.chatService.removeChat(data.chat.id)
         }
     }
 }
