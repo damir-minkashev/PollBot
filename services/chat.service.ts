@@ -13,7 +13,7 @@ export class ChatService implements IChatService<ChatDocument> {
     constructor(@InjectBot() private readonly bot: Telegraf<Context>) {}
 
     async getChatList(userId: number): Promise<ChatDocument[]> {
-        return Chat.find({ userId }).lean();
+        return Chat.find({ admins: userId }).lean();
     }
 
     public async getChat(id: number): Promise<ChatDocument | null> {
@@ -29,7 +29,7 @@ export class ChatService implements IChatService<ChatDocument> {
         return Chat.create({
             title,
             chatId: id,
-            userId
+            admins: [userId],
         })
     }
 
@@ -41,26 +41,26 @@ export class ChatService implements IChatService<ChatDocument> {
         }
     }
 
-    // Этот код пока оставим, пока не разберемся как сделать миграцию
-    // private async getValidChatForUser(chatList: ChatDocument[], userId: number) {
-    //     let result = [];
-    //     for(let chat of chatList) {
-    //         let member = await this.checkAccess(chat.chatId, userId);
-    //         if(!member)
-    //             continue;
-    //
-    //         result.push(chat);
-    //     }
-    //
-    //     return result;
-    // }
+    public async updateChatUsers(userId: number): Promise<void> {
+        const chats = await Chat.find({});
+        for(let chat of chats) {
+            let member = await this.checkAdminRestriction(chat.chatId, userId);
+            if(!member)
+                continue;
 
-    // // TODO code repeats
-    // private async checkAccess(chatId: number, userId: number) {
-    //     let info = await this.bot.telegram.getChatAdministrators(chatId).catch(() =>{});
-    //     if(!info)
-    //         return ;
-    //
-    //     return info.find((el) => el.user.id === userId;)
-    // }
+            const isAlreadyAdmin = chat.admins.some(admin => admin === userId);
+            if (!isAlreadyAdmin) {
+                chat.admins.push(userId);
+                await chat.save();
+            }
+        }
+    }
+
+    private async checkAdminRestriction(chatId: number, userId: number): Promise<boolean> {
+        let info = await this.bot.telegram.getChatAdministrators(chatId).catch(() => {});
+        if(!info)
+            return false;
+
+        return info.some((el) => el.user.id === userId)
+    }
 }

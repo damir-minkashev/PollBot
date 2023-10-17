@@ -1,5 +1,6 @@
 export interface PollData<T> {
     _chat: T,
+    user?: number;
     command: string;
     question: string;
     answers: string[];

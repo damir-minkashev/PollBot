@@ -69,6 +69,10 @@ export class CreatePollWizard {
             case 'addTimeToTitle':
                 this.poll.options.addTimeToTitle = true;
                 return 'Доп. текст опроса ✅.'
+            case 'personal':
+                // @ts-ignore
+               this.poll.user = context.update.callback_query.from.id;
+               return 'Личный ✅.'
             case 'save':
             case 'cancel':
                 return this.onSaving(context, setting);
@@ -83,7 +87,7 @@ export class CreatePollWizard {
             case 'save':
                 this.assertPoll(this.poll);
                 await this.pollService.createPoll(this.poll);
-                return "Опрос сохранен."
+                return `${ this.poll.user ? 'Личный' : 'Общий' } опрос "${this.poll.command}" сохранен.`;
             case 'cancel':
                 return "Изменения отменены."
         }
@@ -92,7 +96,7 @@ export class CreatePollWizard {
     }
 
     private assertPoll(poll: Partial<PollEntity>): asserts poll is PollEntity {
-        if(!this.poll.command || !this.poll.question || !this.poll.answers || !this.poll.chatId || !this.poll.options) {
+        if(!poll.command || !poll.question || !poll.answers || !poll.chatId || !poll.options) {
             throw -1;
         }
     }
@@ -105,6 +109,5 @@ export class CreatePollWizard {
             addTimeToTitle: false,
         }
     }
-
 }
 

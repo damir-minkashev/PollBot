@@ -1,5 +1,5 @@
-import mongoose, { Schema} from "mongoose";
-import {ChatDocument} from "./types/chat";
+import mongoose, { Schema } from "mongoose";
+import { ChatDocument } from "./types/chat";
 
 const ChatSchema = new Schema<ChatDocument>({
     chatId: {
@@ -10,8 +10,8 @@ const ChatSchema = new Schema<ChatDocument>({
         type: String,
         required: true
     },
-    userId: {
-        type: String,
+    admins: {
+        type: [Number],
         required: true,
     },
 })

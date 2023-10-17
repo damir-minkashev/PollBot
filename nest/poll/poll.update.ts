@@ -35,8 +35,12 @@ export class PollUpdate {
     }
 
     @Start()
-    async onStart(): Promise<string> {
-        return "Для начала добавьте бота в чат, куда вы хотите отправлять сообщения и дайте права администратора. Затем создайте опрос /newpoll";
+    async onStart(ctx: Context<TUpdate.MessageUpdate>): Promise<string> {
+        const { id } = ctx.update.message.from;
+        await this.chatService.updateChatUsers(id);
+
+        return "Для начала добавьте бота в чат, куда вы хотите отправлять сообщения и дайте права администратора. Если бот уже присутствует в чате, то ничего дополнительно делать не нужно. " +
+            "Также для вас доступны чаты, в которых вы являетесь администратором. Для того, чтобы создать опрос введите /newpoll";
     }
 
     @Command('showpolls')

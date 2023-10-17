@@ -26,6 +26,10 @@ export class PollService implements IPollService<PollDocument> {
             options: poll.options,
         });
 
+        if (poll.user) {
+            doc.user = poll.user;
+        }
+
         await doc.save();
         return doc;
     }
@@ -34,13 +38,18 @@ export class PollService implements IPollService<PollDocument> {
         await Poll.deleteOne({_id: pollId});
     }
 
-    public async getPollList(chatId: number): Promise<PollDocument[]>{
+    public async getPollList(chatId: number, userId: number): Promise<PollDocument[]>{
         const chat = await this.chatService.getChat(chatId);
 
         if(!chat)
             return [];
 
-        return Poll.find({ _chat: chat._id}).lean();
+        return Poll.find({ $or: [
+            // personal
+            {user: userId, _chat: chat._id},
+            // or common
+            {_chat: chat._id, user: null,}
+        ]}).lean();
     }
 
     public async countPoll(chatId: number): Promise<number> {

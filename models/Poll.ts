@@ -8,6 +8,9 @@ const PollSchema = new Schema<PollDocument>({
         index: true,
         required: true,
     },
+    user: {
+        type: Number,
+    },
     command: {
         type: String,
         required: true,

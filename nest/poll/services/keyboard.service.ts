@@ -8,6 +8,7 @@ import {ChatDocument} from "../../../models/types/chat";
 import {PollDocument} from "../../../models/types/poll";
 import {ChatService} from "../../../services/chat.service";
 import {PollService} from "../../../services/poll.service";
+import {Update as TUpdate} from "telegraf/typings/core/types/typegram";
 
 @Injectable()
 export class KeyboardService {
@@ -34,7 +35,9 @@ export class KeyboardService {
     }
 
     async showPollKeyboard(@Ctx() context: SceneContext, chatId: number){
-        const polls = await this.pollService.getPollList(chatId);
+        const userId = (context.update as TUpdate.CallbackQueryUpdate).callback_query.from.id;
+        const polls = await this.pollService.getPollList(chatId, userId);
+
 
         let buttons = polls.map(el =>
             Markup.button.callback(el.command, `showpoll:${JSON.stringify({id: el._id})}`));
@@ -55,10 +58,11 @@ export class KeyboardService {
         await context.reply("Выберите дополнительные настройки", Markup.inlineKeyboard([
                 Markup.button.callback("📌 Закрепить", `polloption:pinPool`),
                 Markup.button.callback("🗓 Доп. текст опроса", 'polloption:addTimeToTitle'),
+                Markup.button.callback("👤 Личный", 'polloption:personal'),
                 Markup.button.callback("Сохранить", 'polloption:save'),
                 Markup.button.callback("Отмена", 'polloption:cancel'),
             ], {
-                columns:2
+                columns:3
             }));
     }
 

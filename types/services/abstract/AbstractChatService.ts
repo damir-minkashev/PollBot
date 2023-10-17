@@ -3,4 +3,5 @@ export interface AbstractChatService<T> {
     createChat(id: number, title: string, userId: number): Promise<T>;
     removeChat(id: number): Promise<void>;
     getChat(id: number): Promise<T | null>;
+    updateChatUsers(userId: number): Promise<void>;
 }
