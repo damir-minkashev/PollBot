@@ -8,3 +8,7 @@ PollBot - simple telegram bot for managing polls. You can create your own templa
 - Sending to chat
 - Showing your polls
 - Deleting polls
+
+### Stack
+- MongoDB
+- Nest
