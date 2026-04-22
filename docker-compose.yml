@@ -6,6 +6,8 @@ services:
     platform: linux/amd64
     build:
       context: .
+    environment:
+      - NODE_OPTIONS=--dns-result-order=verbatim
     volumes:
       - .:/app
       - /app/node_modules
